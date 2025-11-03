@@ -86,7 +86,11 @@ export async function POST(req: NextRequest) {
       
       // Convert UserData to Account
       const accountData = {
-        ...validatedInput,
+        uid: validatedInput.uid,
+        email: validatedInput.email,
+        displayName: validatedInput.displayName,
+        photoURL: validatedInput.photoURL,
+        phoneNumber: validatedInput.phoneNumber,
         createAt: validatedInput.createAt ? new Date(validatedInput.createAt) : new Date(),
         lastUpdated: validatedInput.lastUpdated ? new Date(validatedInput.lastUpdated) : new Date(),
       };
@@ -104,7 +108,11 @@ export async function POST(req: NextRequest) {
       
       // Convert UserData to Account
       const accountData = {
-        ...validatedInput,
+        uid: validatedInput.uid,
+        email: validatedInput.email,
+        displayName: validatedInput.displayName,
+        photoURL: validatedInput.photoURL,
+        phoneNumber: validatedInput.phoneNumber,
         createAt: validatedInput.createAt ? new Date(validatedInput.createAt) : new Date(),
         lastUpdated: validatedInput.lastUpdated ? new Date(validatedInput.lastUpdated) : new Date(),
       };
@@ -160,11 +168,15 @@ export async function PATCH(req: NextRequest) {
       }, { status: 404 });
     }
     
-    // Convert UserData to Account
+    // Convert UserData to Account - merge with existing user data
     const accountData = {
-      ...validatedInput,
-      createAt: validatedInput.createAt ? new Date(validatedInput.createAt) : new Date(),
-      lastUpdated: validatedInput.lastUpdated ? new Date(validatedInput.lastUpdated) : new Date(),
+      uid: validatedInput.uid,
+      email: validatedInput.email || existingUser.email,
+      displayName: validatedInput.displayName || existingUser.displayName,
+      photoURL: validatedInput.photoURL || existingUser.photoURL,
+      phoneNumber: validatedInput.phoneNumber || existingUser.phoneNumber,
+      createAt: existingUser.createAt || new Date(),
+      lastUpdated: new Date(),
     };
     
     // Update user

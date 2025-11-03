@@ -9,7 +9,7 @@ export type Language = "en" | "he";
 // User model
 export interface Account {
   uid: string;
-  displayName: string;
+  displayName?: string;
   email: string;
   photoURL?: string;
   phoneNumber?: string;
