@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import { Account } from '@choiceStoryWeb/models';
+import { Account, KidDetails } from '@choiceStoryWeb/models';
 import { firestoreService } from '../services/firestore.service';
 
 interface FirestoreState {
   account: Account | null;
-  users: Account[];
+  users: KidDetails[];
   loading: boolean;
   error: string | null;
   fetchAccount: (email: string) => Promise<void>;

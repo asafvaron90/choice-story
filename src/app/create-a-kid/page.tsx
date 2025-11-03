@@ -40,7 +40,7 @@ export default function CreateAKidPage() {
     if (!kidDetails) {
       setKidDetails({
         id: '',
-        accountId: user?.uid || '',
+        accountId: currentUser?.uid || '',
         names: [],
         name: '',
         age: 0,
@@ -50,7 +50,7 @@ export default function CreateAKidPage() {
         lastUpdated: new Date()
       } as KidDetails);
     }
-  }, [kidDetails, setKidDetails]);
+  }, [kidDetails, setKidDetails, currentUser]);
 
   useEffect(() => {
     // Check if kid details are completed

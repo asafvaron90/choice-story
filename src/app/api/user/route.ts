@@ -84,8 +84,15 @@ export async function POST(req: NextRequest) {
     if (existingUser) {
       console.log(`[/api/user] User ${validatedInput.uid} already exists, updating data`);
       
+      // Convert UserData to Account
+      const accountData = {
+        ...validatedInput,
+        createAt: validatedInput.createAt ? new Date(validatedInput.createAt) : new Date(),
+        lastUpdated: validatedInput.lastUpdated ? new Date(validatedInput.lastUpdated) : new Date(),
+      };
+      
       // Update existing user
-      const updatedUser = await firestoreServerService.updateUserData(validatedInput as UserData);
+      const updatedUser = await firestoreServerService.updateUserData(accountData);
       
       return NextResponse.json({
         success: true,
@@ -95,8 +102,15 @@ export async function POST(req: NextRequest) {
     } else {
       console.log(`[/api/user] User ${validatedInput.uid} does not exist, creating new user record`);
       
+      // Convert UserData to Account
+      const accountData = {
+        ...validatedInput,
+        createAt: validatedInput.createAt ? new Date(validatedInput.createAt) : new Date(),
+        lastUpdated: validatedInput.lastUpdated ? new Date(validatedInput.lastUpdated) : new Date(),
+      };
+      
       // Create new user
-      const newUser = await firestoreServerService.createUserData(validatedInput as UserData);
+      const newUser = await firestoreServerService.createUserData(accountData);
       
       return NextResponse.json({
         success: true,
@@ -146,8 +160,15 @@ export async function PATCH(req: NextRequest) {
       }, { status: 404 });
     }
     
+    // Convert UserData to Account
+    const accountData = {
+      ...validatedInput,
+      createAt: validatedInput.createAt ? new Date(validatedInput.createAt) : new Date(),
+      lastUpdated: validatedInput.lastUpdated ? new Date(validatedInput.lastUpdated) : new Date(),
+    };
+    
     // Update user
-    const updatedUser = await firestoreServerService.updateUserData(validatedInput as UserData);
+    const updatedUser = await firestoreServerService.updateUserData(accountData);
     
     return NextResponse.json({
       success: true,

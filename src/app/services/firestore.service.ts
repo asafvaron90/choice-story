@@ -138,6 +138,14 @@ class FirestoreService {
     }
   }
 
+  /**
+   * Get user (account) data by UID - alias for getAccountByUid
+   * @param uid User's Firebase Auth UID
+   */
+  async getUserByUid(uid: string) {
+    return this.getAccountByUid(uid);
+  }
+
 
   private async updateExistingKid(kidId: string, kidDetails: Partial<KidDetails>, avatarUrl?: string): Promise<string> {
     if (!this.db) {

@@ -54,7 +54,7 @@ describe('Text Generation', () => {
 
     it('should throw error when API key is missing', async () => {
       const originalKey = process.env.OPENAI_API_KEY;
-      process.env.OPENAI_API_KEY = undefined;
+      process.env.OPENAI_API_KEY = undefined as any;
 
       await expect(
         generateText({
