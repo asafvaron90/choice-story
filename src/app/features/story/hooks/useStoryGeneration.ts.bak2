@@ -1,0 +1,250 @@
+import { useState } from 'react';
+import { toast } from "@/components/ui/use-toast";
+import { StoryApi } from '@/app/network/StoryApi';
+import { Story, StoryStatus, KidDetails, Account } from '@/models';
+import { StoryTemplates } from '@/app/_lib/services/prompt_templats';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { functionClientAPI } from '@/app/network/functions';
+
+interface UseStoryGenerationProps {
+  kidDetails: KidDetails;
+  currentUser: Account;
+  onError: (error: Error) => void;
+  setTitle?: (title: string) => void;
+  setProblemDescription?: (problem: string) => void;
+  onStoryStatusChange: (story: Story) => void;
+}
+
+interface UseStoryGenerationReturn {
+  isGenerating: boolean;
+  currentStory: Story | null;
+  generateNow: (problem: string) => Promise<void>;
+}
+
+/**
+ * Custom hook for story generation process
+ * Handles the entire flow from title generation to image creation
+ */
+export const useStoryGeneration = ({
+  kidDetails,
+  currentUser,
+  onError,
+  setTitle,
+  setProblemDescription,
+  onStoryStatusChange: progressCallback
+}: UseStoryGenerationProps): UseStoryGenerationReturn => {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [currentStory, setCurrentStory] = useState<Story | null>(null);
+  const { language } = useLanguage();
+
+  /**
+   * Updates the story with new status and notifies parent component
+   */
+  const updateStoryStatus = (story: Story, status: StoryStatus, additionalData?: Partial<Story>): Story => {
+    const updatedStory = {
+      ...story,
+      ...(additionalData || {}),
+      status,
+      lastUpdated: new Date()
+    };
+    
+    setCurrentStory(updatedStory);
+    progressCallback(updatedStory);
+    console.log('Updated story status:', updatedStory.status);
+    return updatedStory;
+  };
+
+  /**
+   * Main function to generate a story from a problem description
+   */
+  const generateNow = async (problem: string): Promise<void> => {
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to generate a story.",
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    // Start generation process
+    setIsGenerating(true);
+    
+    // Initialize empty story for progress tracking
+    let newStory: Story = {
+      id: "",
+      userId: currentUser.uid,
+      kidId: kidDetails.id,
+      title: "",
+      problemDescription: problem,
+      advantages: "",
+      disadvantages: "",
+      status: StoryStatus.INCOMPLETE, // Initial status
+      pages: [],
+      createdAt: new Date(),
+      lastUpdated: new Date()
+    };
+    
+    // Set initial story and update to first progress status
+    setCurrentStory(newStory);
+    newStory = updateStoryStatus(newStory, StoryStatus.PROGRESS10);
+  
+    try {
+      // Update problem description in UI if callback provided
+      if (setProblemDescription) setProblemDescription(problem);
+      
+      // STEP 1: Generate story title
+      const title = await generateStoryTitle(problem);
+      
+      // Update UI with generated title and update story object
+      if (setTitle) setTitle(title);
+      
+      // Generate a unique story ID for the Firebase function
+      const storyId = `story-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      newStory = updateStoryStatus(newStory, StoryStatus.PROGRESS20, { title, id: storyId });
+
+      console.log("Calling Firebase generateStoryPagesText with:", {
+        name: kidDetails.name || 'Child',
+        problemDescription: problem,
+        title: title,
+        age: kidDetails.age,
+        advantages: newStory.advantages || "",
+        disadvantages: newStory.disadvantages || "",
+        accountId: currentUser.uid,
+        userId: currentUser.uid,
+        storyId: storyId
+      });
+
+      // Use Firebase function for story generation
+      const response = await functionClientAPI.generateStoryPagesText({
+        name: kidDetails.name || 'Child',
+        problemDescription: problem,
+        title: title,
+        age: kidDetails.age,
+        advantages: newStory.advantages || "",
+        disadvantages: newStory.disadvantages || "",
+        accountId: currentUser.uid,
+        userId: currentUser.uid,
+        storyId: storyId
+      });
+
+      if (!response.success || !response.text) {
+        throw new Error("Failed to generate story text from Firebase function");
+      }
+
+      console.log("Firebase function returned text:", response.text.substring(0, 200) + "...");
+
+      newStory = updateStoryStatus(newStory, StoryStatus.PROGRESS30);
+    
+      // Convert API response to story pages
+      const storyPages = StoryTemplates.fullStoryTextGenerationResponseConvertor(response.text);
+      if (!storyPages) {
+        throw new Error("Failed to generate story");
+      }
+      // newStory = updateStoryStatus(newStory, StoryStatus.PROGRESS40);
+      
+      // Update story with generated pages (50% progress)
+      newStory = updateStoryStatus(newStory, StoryStatus.PROGRESS50, { pages: storyPages });
+      newStory = updateStoryStatus(newStory, StoryStatus.COMPLETE);
+      newStory = await uploadStory(newStory);
+      
+      // Generate story images (80% progress)
+      // const storyWithImages = await generateStoryImages(newStory);
+      // newStory = updateStoryStatus(newStory, StoryStatus.PROGRESS90);
+      
+      // STEP 4: Complete the story generation process (100% progress)
+      // Use all properties from storyWithImages but keep our state tracking
+      // newStory = updateStoryStatus(storyWithImages, StoryStatus.COMPLETE);
+      
+    } catch (error) {
+      // If we have a story in progress, mark it as incomplete
+      if (newStory && newStory.id) {
+        updateStoryStatus(newStory, StoryStatus.INCOMPLETE);
+      }
+      handleError(error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  /**
+   * Generates a title for the story based on the problem description
+   */
+  const generateStoryTitle = async (problem: string): Promise<string> => {
+    const response = await functionClientAPI.generateStoryTitles({
+      name: kidDetails.name || 'Child',
+      gender: kidDetails.gender as 'male' | 'female',
+      problemDescription: problem,
+      age: kidDetails.age,
+      advantages: undefined,
+      disadvantages: newStory.disadvantages || undefined
+    });
+    
+    if (!response.success || !response.titles || response.titles.length === 0) {
+      throw new Error('Failed to generate titles');
+    }
+    
+    return response.titles[0];
+  };
+
+  /**
+   * Creates the initial story in the database
+   */
+  const uploadStory = async (newStory: Story): Promise<Story> => {
+    const createResponse = await StoryApi.uploadStory(newStory);
+    
+    if (!createResponse.success || !createResponse.data) {
+      throw new Error(
+        'error' in createResponse ? createResponse.error : "Failed to create story"
+      );
+    }
+    
+    return createResponse.data.story;
+  };
+
+  /**
+   * Generates all images for the story using batch API
+   */
+  // const _generateStoryImages = async (story: Story): Promise<Story> => {
+  //   const imageGenerationResponse = await StoryApi.generateStoryImagesInBatch(story);
+    
+  //   if (!imageGenerationResponse || !imageGenerationResponse.success || !imageGenerationResponse.data) {
+  //     console.warn('Image generation had issues:', imageGenerationResponse);
+  //     toast({
+  //       title: "Image Generation Issue",
+  //       description: "Some images may not have generated correctly. You can try again later.",
+  //       variant: "destructive",
+  //     });
+  //     return story;
+  //   }
+
+  //   return imageGenerationResponse.data.story;
+  // };
+
+  /**
+   * Handles errors in the generation process
+   */
+  const handleError = (error: unknown): void => {
+    console.error('Error generating story:', error);
+    
+    // Call onError callback
+    if (error instanceof Error) {
+      onError(error);
+    } else {
+      onError(new Error('An unknown error occurred'));
+    }
+    
+    // Show error toast
+    toast({
+      title: "Generation Failed",
+      description: error instanceof Error ? error.message : 'An unknown error occurred',
+      variant: "destructive",
+    });
+  };
+
+  return {
+    isGenerating,
+    currentStory,
+    generateNow
+  };
+};

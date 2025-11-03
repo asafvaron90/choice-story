@@ -1,0 +1,35 @@
+### Test Story Generate Images with Firebase Storage Upload
+POST http://localhost:3000/api/story/generate-images
+Content-Type: application/json
+
+{
+  "prompt": "A magical forest with glowing mushrooms and fairy lights",
+  "userId": "test-user-123",
+  "folderPath": "stories/fantasy",
+  "outputCount": 2,
+  "parameters": {
+    "guidance_scale": 7.5,
+    "num_steps": 100
+  }
+}
+
+### Test Story Generate Images with Reference Image
+POST http://localhost:3000/api/story/generate-images
+Content-Type: application/json
+
+{
+  "prompt": "A child playing in a garden with butterflies",
+  "userId": "test-user-456",
+  "folderPath": "stories/children",
+  "outputCount": 1,
+  "referenceImageUrl": "https://firebasestorage.googleapis.com/v0/b/choicestory-b3135.appspot.com/o/users%2F8TlRImK7weP13RjLWhp6jGFJJTw1%2Fkids%2Fsofi_1743173246302.png?alt=media&token=d8528cc8-1e14-4514-8f3a-ad2f48fdbc20"
+}
+
+### Test Story Generate Images (Anonymous)
+POST http://localhost:3000/api/story/generate-images
+Content-Type: application/json
+
+{
+  "prompt": "A space adventure with rockets and planets",
+  "outputCount": 3
+} 

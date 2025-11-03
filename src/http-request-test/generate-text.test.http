@@ -1,0 +1,13 @@
+// create a test http request to the generate-text route
+
+@age= 5
+@gender= male
+@name= John
+@title= The Adventure of John
+
+POST http://localhost:3000/api/story/generate-text
+Content-Type: application/json
+
+{
+    "prompt": "Create a short story problem for a {{age}} year old {{gender}} child named {{name}} with the title '{{title}}'. The problem should be something the child can relate to and learn from. Keep it under 3 paragraphs and make it engaging and age-appropriate."
+}

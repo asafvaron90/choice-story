@@ -1,0 +1,38 @@
+### Test Generate Image with Firebase Storage Upload
+POST http://localhost:3000/api/generate-image
+Content-Type: application/json
+
+{
+  "prompt": "A cute cartoon cat playing with a ball in a garden",
+  "userId": "test-user-123",
+  "folderPath": "test/generated",
+  "config": {
+    "model": "dall-e-3",
+    "size": "1024x1024",
+    "quality": "standard",
+    "style": "vivid",
+    "detail": "high"
+  }
+}
+
+### Test Generate Image with Form Data
+POST http://localhost:3000/api/generate-image
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="prompt"
+
+A beautiful sunset over mountains
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="userId"
+
+test-user-456
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="folderPath"
+
+stories/generated
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="config"
+
+{"model":"dall-e-3","size":"1024x1024","quality":"hd","style":"natural","detail":"high"}
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 

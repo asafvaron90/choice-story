@@ -1,0 +1,26 @@
+// Test HTTP request for the generate-image endpoint using the ImageGenerationApi
+
+// Variables for customization
+@userId= user123
+@kidId= kid456
+@kidName= John
+@kidAge= 5
+@kidGender= male
+@kidImageAnalysis= has brown hair and blue eyes, friendly smile
+@storyTitle= The Sharing Adventure
+@storyProblemDescription= learning to share toys with friends
+
+// Note: In a real API call, the prompt would be generated using:
+// const prompt = StoryTemplates.generateStoryImageTemplate(story, kidDetails, "cover image for the story");
+// This HTTP test simulates the result of that function
+
+POST http://localhost:3000/api/story/generate-images
+Content-Type: application/json
+
+{
+    "prompt": "Main Character Characteristics: \n- {{kidAge}} years old {{kidGender}} \n- {{kidImageAnalysis}}\n\nStory context: \nTitle: {{storyTitle}}\nDescription: {{storyProblemDescription}}\nMoral: Focus on making good choices\nMotive: Help {{kidName}} learn about good decision making\nAge: {{kidAge}}\nGender: {{kidGender}}\nKid name: {{kidName}}\nIdea: A story about making choices with consequences\nLimitations: Keep content age-appropriate for a {{kidAge}} year old {{kidGender}}\nKeywords: choices, learning, growth, decision making\n\nImage Style: Pixar-like 3D animation\n\nInstructions:\n- Create a detailed illustration that matches the text exactly\n- Focus on the main character who should be a {{kidAge}} year old {{kidGender}}\n- Ensure the image clearly depicts the action and emotion described in the scene\n- Keep all content child-friendly and appropriate for a {{kidAge}} year old\n- Use bright, engaging colors and expressive characters\n\nCurrent Scene Description: \ncover image for the story",
+    "outputCount": 1,
+    "userId": "{{userId}}",
+    "kidId": "{{kidId}}",
+    "styleGuidance": "children's book illustration, colorful, age-appropriate"
+}

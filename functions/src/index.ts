@@ -1,0 +1,2435 @@
+import * as functions from "firebase-functions/v1";
+import * as admin from "firebase-admin";
+import { generateText } from "./text-generation";
+import { generateImage } from "./image-generation";
+import { OPENAI_AGENTS } from "./open-ai-agents";
+
+// Initialize Firebase Admin
+admin.initializeApp();
+
+/**
+ * Example HTTP Cloud Function
+ * You can call this from your Next.js app or directly via HTTP
+ */
+export const helloWorld = functions.https.onRequest((request, response) => {
+  functions.logger.info("Hello logs!", { structuredData: true });
+  response.send("Hello from Firebase Cloud Functions!");
+});
+
+/**
+ * Debug Environment and Collections
+ * Helps debug collection path issues
+ */
+export const debugEnvironment = functions.https.onRequest(async (request, response) => {
+  try {
+    const environment = process.env.NODE_ENV || 'development';
+    const storiesCollection = `stories_gen_${environment}`;
+    
+    // List all collections
+    const collections = await admin.firestore().listCollections();
+    const collectionNames = collections.map(col => col.id);
+    
+    // Check if the expected collection exists
+    const expectedCollectionExists = collectionNames.includes(storiesCollection);
+    
+    // If a storyId is provided, check if the document exists
+    const { storyId } = request.query;
+    let documentExists = false;
+    let documentData = null;
+    
+    if (storyId && expectedCollectionExists) {
+      try {
+        const storyRef = admin.firestore().collection(storiesCollection).doc(storyId as string);
+        const docSnapshot = await storyRef.get();
+        documentExists = docSnapshot.exists;
+        documentData = docSnapshot.exists ? docSnapshot.data() : null;
+      } catch (docError) {
+        console.error("Error checking document:", docError);
+      }
+    }
+    
+    response.json({
+      environment,
+      storiesCollection,
+      expectedCollectionExists,
+      availableCollections: collectionNames,
+      storyId: storyId || null,
+      documentExists,
+      documentData: documentData ? Object.keys(documentData) : null,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    response.status(500).json({
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Example Callable Cloud Function
+ * Can be called from your Next.js app using the Firebase SDK
+ */
+export const addMessage = functions.https.onCall(async (data, context) => {
+  // Check if user is authenticated
+  if (!context?.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "User must be authenticated"
+    );
+  }
+
+  const { text } = data;
+
+  // Add message to Firestore
+  const messageRef = await admin.firestore().collection("messages").add({
+    text,
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    uid: context.auth.uid,
+  });
+
+  return { id: messageRef.id };
+});
+
+/**
+ * Example Firestore Trigger
+ * Automatically triggered when a document is created/updated/deleted
+ */
+export const onUserCreate = functions.firestore
+  .document("users/{userId}")
+  .onCreate(async (snapshot, context) => {
+    const userData = snapshot.data();
+    functions.logger.info(`New user created: ${context.params.userId}`, userData);
+
+    // You can perform additional operations here
+    // For example, send a welcome email, create default data, etc.
+
+    return null;
+  });
+
+/**
+ * Example Scheduled Function (Cron Job)
+ * Runs every day at midnight UTC
+ */
+export const scheduledFunction = functions.pubsub
+  .schedule("every 24 hours")
+  .onRun(async (_context) => {
+    functions.logger.info("Running scheduled function");
+
+    // Your scheduled task logic here
+    // For example: cleanup old data, send reports, etc.
+
+    return null;
+  });
+
+/**
+ * OpenAI Text Generation - Callable Function
+ * Generate text using OpenAI
+ * 
+ * Request body:
+ * {
+ *   "prompt": {
+ *     "id": "prompt_id"
+ *   },
+ *   "input": "Your input text here"
+ * }
+ */
+export const generateTextFunction = functions.https.onCall(
+  async (data, context) => {
+    // Check if user is authenticated
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      const { prompt, input } = data;
+
+      if (!prompt?.id || !input) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "prompt.id and input are required"
+        );
+      }
+
+      const result = await generateText({ prompt, input });
+
+      return {
+        success: true,
+        text: result,
+      };
+    } catch (error) {
+      functions.logger.error("Error generating text:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate text: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
+/**
+ * OpenAI Image Generation - Callable Function
+ * Generate image using OpenAI
+ * 
+ * Request body:
+ * {
+ *   "prompt": {
+ *     "id": "prompt_id"
+ *   },
+ *   "input": [
+ *     {
+ *       "role": "user",
+ *       "content": [
+ *         {"type": "input_text", "text": "text here"},
+ *         {"type": "input_image", "image_url": "url here"}
+ *       ]
+ *     }
+ *   ]
+ * }
+ */
+export const generateImageFunction = functions.https.onCall(
+  async (data, context) => {
+    // Check if user is authenticated
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      const { prompt, input } = data;
+
+      if (!prompt?.id || !input) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "prompt.id and input are required"
+        );
+      }
+
+      // Generate image (returns base64)
+      const base64Image = await generateImage({ prompt, input });
+
+      return {
+        success: true,
+        base64: base64Image,
+      };
+    } catch (error) {
+      functions.logger.error("Error generating image:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate image: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
+// ============================================================================
+// HELPER FUNCTIONS (Shared Logic)
+// ============================================================================
+
+interface StoryPagesTextParams {
+  name: string;
+  problemDescription: string;
+  title: string;
+  age: number;
+  advantages: string;
+  disadvantages: string;
+  accountId: string;
+  userId: string;
+  storyId: string;
+}
+
+/**
+ * Helper: Generate Story Pages Text and Save to Firestore
+ */
+async function generateAndSaveStoryPagesText(params: StoryPagesTextParams) {
+  const { name, problemDescription, title, age, advantages, disadvantages, accountId, userId, storyId } = params;
+
+  // Generate the story text
+  const input = `Name: ${name}
+Problem Description: ${problemDescription}
+Story Title: ${title}
+Target Age: ${age} years old
+Moral Advantages: ${advantages}
+Moral Disadvantages: ${disadvantages}`;
+
+  const text = await generateText({
+    prompt: { id: OPENAI_AGENTS.STORY_PAGES_TEXT },
+    input: input,
+  });
+
+  // Save to Firestore at the correct path
+  const storyRef = admin.firestore()
+    .collection('accounts')
+    .doc(accountId)
+    .collection('users')
+    .doc(userId)
+    .collection('stories')
+    .doc(storyId);
+
+  await storyRef.set({
+    name,
+    problemDescription,
+    title,
+    age,
+    advantages,
+    disadvantages,
+    text,
+    status: 'completed',
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  return {
+    success: true,
+    text,
+    storyId,
+  };
+}
+
+/**
+ * Helper: Save Base64 Image to Firebase Storage
+ */
+async function saveImageToStorage(
+  base64Image: string,
+  accountId: string,
+  userId: string,
+  storyId: string,
+  imageType: 'avatar' | 'cover' | 'page',
+  pageNum?: number
+): Promise<string> {
+  // Convert base64 to buffer
+  const imageBuffer = Buffer.from(base64Image, 'base64');
+  
+  // Determine file path based on image type
+  let filePath: string;
+  if (imageType === 'avatar') {
+    filePath = `accounts/${accountId}/users/${userId}/avatars/avatar.png`;
+  } else if (imageType === 'cover') {
+    filePath = `accounts/${accountId}/users/${userId}/stories/${storyId}/cover.png`;
+  } else {
+    // page image - use timestamp if no pageNum provided
+    const timestamp = Date.now();
+    filePath = `accounts/${accountId}/users/${userId}/stories/${storyId}/pages/page-${pageNum || timestamp}.png`;
+  }
+
+  // Upload to Firebase Storage
+  const bucket = admin.storage().bucket();
+  const file = bucket.file(filePath);
+  
+  await file.save(imageBuffer, {
+    metadata: {
+      contentType: 'image/png',
+      metadata: {
+        uploadedAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  // Make file publicly accessible
+  await file.makePublic();
+
+  // Return public URL
+  return `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+}
+
+// ============================================================================
+// CALLABLE FUNCTIONS (Firebase SDK)
+// ============================================================================
+
+/**
+ * Generate Story Pages Text (Callable)
+ * Generates complete story pages with text and image prompts
+ * 
+ * Request body:
+ * {
+ *   "name": "kid_name",
+ *   "problemDescription": "problem description",
+ *   "title": "story title",
+ *   "age": 8,
+ *   "advantages": "advantages",
+ *   "disadvantages": "disadvantages",
+ *   "accountId": "account_id",
+ *   "userId": "user_id",
+ *   "storyId": "story_id"
+ * }
+ */
+export const generateStoryPagesText = functions.https.onCall(
+  async (data, context) => {
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      const { name, problemDescription, title, age, advantages, disadvantages, accountId, userId, storyId } = data;
+
+      if (!name || !problemDescription || !title || !age || !advantages || !disadvantages || !accountId || !userId || !storyId) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "All fields are required: name, problemDescription, title, age, advantages, disadvantages, accountId, userId, storyId"
+        );
+      }
+
+      const result = await generateAndSaveStoryPagesText({
+        name,
+        problemDescription,
+        title,
+        age,
+        advantages,
+        disadvantages,
+        accountId,
+        userId,
+        storyId,
+      });
+
+      return result;
+    } catch (error) {
+      functions.logger.error("Error generating story pages text:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate story pages text: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
+/**
+ * Generate Story Pages Text (HTTP API)
+ * Same as callable version but works with fetch/axios
+ * 
+ * POST /generateStoryPagesTextHttp
+ * Headers: { "Authorization": "Bearer <firebase-token>" }
+ * Body: {
+ *   "name": "kid_name",
+ *   "accountId": "account_id",
+ *   "userId": "user_id",
+ *   "storyId": "story_id",
+ *   ...
+ * }
+ */
+export const generateStoryPagesTextHttp = functions.https.onRequest(
+  async (request, response) => {
+    // CORS headers
+    response.set('Access-Control-Allow-Origin', '*');
+    
+    if (request.method === 'OPTIONS') {
+      response.set('Access-Control-Allow-Methods', 'POST');
+      response.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      response.status(204).send('');
+      return;
+    }
+
+    if (request.method !== 'POST') {
+      response.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      // Get Firebase token from Authorization header
+      const authHeader = request.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        response.status(401).json({ error: 'Unauthorized - No token provided' });
+        return;
+      }
+
+      const token = authHeader.split('Bearer ')[1];
+      
+      // Verify token
+      await admin.auth().verifyIdToken(token);
+
+      const { name, problemDescription, title, age, advantages, disadvantages, accountId, userId, storyId } = request.body;
+
+      if (!name || !problemDescription || !title || !age || !advantages || !disadvantages || !accountId || !userId || !storyId) {
+        response.status(400).json({
+          error: 'Missing required fields',
+          required: ['name', 'problemDescription', 'title', 'age', 'advantages', 'disadvantages', 'accountId', 'userId', 'storyId']
+        });
+        return;
+      }
+
+      const result = await generateAndSaveStoryPagesText({
+        name,
+        problemDescription,
+        title,
+        age,
+        advantages,
+        disadvantages,
+        accountId,
+        userId,
+        storyId,
+      });
+
+      response.status(200).json(result);
+    } catch (error) {
+      functions.logger.error("Error generating story pages text (HTTP):", error);
+      response.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+);
+
+/**
+ * Generate Story Image Prompt
+ * Generates image prompt for a specific story page or multiple pages
+ * 
+ * Request body (single page):
+ * {
+ *   "pageText": "page text",
+ *   "pageNum": 1 (optional),
+ *   "gender": "male|female" (optional),
+ *   "age": 8 (optional),
+ *   "accountId": "account_id" (optional - for saving to Firestore),
+ *   "userId": "user_id" (optional - for saving to Firestore),
+ *   "storyId": "story_id" (optional - for saving to Firestore),
+ *   "updatePath": "firestore update path" (optional - for saving to Firestore)
+ * }
+ * 
+ * Request body (multiple pages):
+ * {
+ *   "pages": [
+ *     {
+ *       "pageNum": 1,
+ *       "pageType": "NORMAL",
+ *       "storyText": "page text"
+ *     },
+ *     ...
+ *   ],
+ *   "gender": "male|female" (optional),
+ *   "age": 8 (optional)
+ * }
+ */
+export const generateStoryImagePrompt = functions.https.onCall(
+  async (data, context) => {
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      const { pageText, pageNum: _pageNum, pages, gender, age, accountId: _accountId, userId: _userId, storyId, updatePath, environment } = data;
+
+      // Handle multiple pages case
+      if (pages && Array.isArray(pages) && pages.length > 0) {
+        // Validate that each page has the required fields
+        for (const page of pages) {
+          if (!page.storyText || !page.pageType) {
+            throw new functions.https.HttpsError(
+              "invalid-argument",
+              "Each page must have storyText and pageType"
+            );
+          }
+        }
+
+        functions.logger.info(`Generating image prompts for ${pages.length} pages`);
+
+        try {
+          // Create input for all pages at once
+          const input = `story_pages = ${JSON.stringify(pages)}`;
+          
+          const result = await generateText({
+            prompt: { id: OPENAI_AGENTS.STORY_IMAGE_PROMPT },
+            input: input,
+          });
+
+          // Parse the AI response - handle both complete and incomplete responses
+          let parsedPages;
+          try {
+            // First try to parse the result directly
+            functions.logger.info("Attempting to parse AI response:", result.substring(0, 200) + "...");
+            const parsed = JSON.parse(result);
+            if (parsed.pages && Array.isArray(parsed.pages)) {
+              parsedPages = parsed.pages;
+              functions.logger.info("Successfully parsed AI response with pages:", parsedPages.length);
+            } else {
+              functions.logger.error("Expected 'pages' array in response, got:", parsed);
+              throw new Error("Invalid response format - expected 'pages' array");
+            }
+          } catch (parseError) {
+            functions.logger.warn("Direct JSON parsing failed, attempting to handle incomplete response:", parseError);
+            functions.logger.warn("Raw response length:", result.length);
+            
+            // Handle incomplete JSON by trying to extract what we can
+            try {
+              const resultStr = result.toString().trim();
+              
+              // Try to extract individual page objects from the incomplete JSON
+              const pageObjects: Array<{pageNum: number; pageType: string; text?: string; storyText?: string; imagePrompt: string}> = [];
+              
+              // Use regex to find complete page objects in the JSON
+              const pageRegex = /\{\s*"pageNum"\s*:\s*(\d+)[\s\S]*?"imagePrompt"\s*:\s*"([^"]*(?:\\.[^"]*)*)"[^}]*\}/g;
+              let match;
+              
+              while ((match = pageRegex.exec(resultStr)) !== null) {
+                try {
+                  // Find the start of this match and try to parse the full object
+                  const startPos = match.index;
+                  let braceCount = 0;
+                  let endPos = startPos;
+                  let inString = false;
+                  let escaped = false;
+                  
+                  // Find the complete object by counting braces
+                  for (let i = startPos; i < resultStr.length; i++) {
+                    const char = resultStr[i];
+                    
+                    if (escaped) {
+                      escaped = false;
+                      continue;
+                    }
+                    
+                    if (char === '\\' && inString) {
+                      escaped = true;
+                      continue;
+                    }
+                    
+                    if (char === '"') {
+                      inString = !inString;
+                      continue;
+                    }
+                    
+                    if (!inString) {
+                      if (char === '{') {
+                        braceCount++;
+                      } else if (char === '}') {
+                        braceCount--;
+                        if (braceCount === 0) {
+                          endPos = i + 1;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                  
+                  if (endPos > startPos) {
+                    const pageJson = resultStr.substring(startPos, endPos);
+                    const pageObj = JSON.parse(pageJson);
+                    if (pageObj.pageNum && pageObj.imagePrompt) {
+                      pageObjects.push(pageObj);
+                      functions.logger.info(`Successfully extracted page ${pageObj.pageNum}`);
+                    }
+                  }
+                } catch (pageError) {
+                  functions.logger.warn(`Failed to parse page: ${pageError}`);
+                }
+              }
+              
+              if (pageObjects.length > 0) {
+                parsedPages = pageObjects;
+                functions.logger.info(`Successfully extracted ${pageObjects.length} pages from incomplete response`);
+              } else {
+                throw new Error("Could not extract any valid pages from incomplete response");
+              }
+              
+            } catch (extractError) {
+              functions.logger.error("Failed to extract pages from incomplete response:", extractError);
+              functions.logger.error("Response preview:", result.substring(0, 1000));
+              
+              throw new functions.https.HttpsError(
+                "internal",
+                `Failed to parse AI response. The response may be incomplete due to token limits. Please try again or reduce the number of pages.`
+              );
+            }
+          }
+
+          // Validate that all pages have imagePrompt and ensure they contain only the image prompt text
+          const validatedPages = [];
+          let failedCount = 0;
+          
+          for (const parsedPage of parsedPages) {
+            if (parsedPage.imagePrompt && parsedPage.imagePrompt.trim()) {
+              // Check if imagePrompt is actually the full pages JSON (which would be a bug)
+              let actualImagePrompt = parsedPage.imagePrompt;
+              try {
+                const potentialJsonParsed = JSON.parse(parsedPage.imagePrompt);
+                if (potentialJsonParsed.pages && Array.isArray(potentialJsonParsed.pages)) {
+                  // This is the bug - imagePrompt contains full pages JSON
+                  functions.logger.error(`BUG DETECTED: imagePrompt for page ${parsedPage.pageNum} contains full pages JSON instead of just the prompt`);
+                  
+                  // Find the correct page in the nested JSON and extract its imagePrompt
+                  const correctPage = potentialJsonParsed.pages.find((p: unknown) => 
+                    typeof p === 'object' && p !== null && 'pageNum' in p && (p as {pageNum: number}).pageNum === parsedPage.pageNum
+                  ) as {imagePrompt?: string} | undefined;
+                  if (correctPage && correctPage.imagePrompt) {
+                    actualImagePrompt = correctPage.imagePrompt;
+                    functions.logger.info(`Fixed imagePrompt for page ${parsedPage.pageNum}`);
+                  } else {
+                    functions.logger.error(`Could not find correct page ${parsedPage.pageNum} in nested JSON`);
+                    actualImagePrompt = parsedPage.imagePrompt; // Fallback to original
+                  }
+                }
+              } catch (_e) {
+                // imagePrompt is not JSON, so it's correct - use as is
+              }
+
+              // Create clean page object with only the necessary fields
+              validatedPages.push({
+                pageNum: parsedPage.pageNum,
+                pageType: parsedPage.pageType,
+                storyText: parsedPage.storyText || parsedPage.text || parsedPage.pageText, // Handle multiple field names
+                imagePrompt: actualImagePrompt
+              });
+            } else {
+              functions.logger.error(`Missing imagePrompt for page ${parsedPage.pageNum}:`, parsedPage);
+              failedCount++;
+            }
+          }
+
+          if (failedCount > 0) {
+            functions.logger.error(`Failed to generate image prompts for ${failedCount} pages`);
+          }
+
+          const successfulCount = validatedPages.length;
+
+          // For backwards compatibility, also create results array but use the validated pages
+          const results = validatedPages.map(page => ({
+            pageNum: page.pageNum,
+            pageType: page.pageType,
+            storyText: page.storyText,
+            imagePrompt: page.imagePrompt,
+            success: true
+          }));
+
+          return {
+            success: true,
+            results: results,
+            totalPages: pages.length,
+            successfulPages: successfulCount,
+            failedPages: failedCount,
+            pages: validatedPages // Return the clean, validated pages
+          };
+        } catch (error) {
+          functions.logger.error("Error generating image prompts for all pages:", error);
+          throw new functions.https.HttpsError(
+            "internal",
+            `Failed to generate image prompts: ${error instanceof Error ? error.message : "Unknown error"}`
+          );
+        }
+      }
+
+      // Handle single page case
+      if (!pageText) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "pageText is required for single page generation, or pages array for multiple pages"
+        );
+      }
+
+      // Build variables object for the prompt
+      const variables: Record<string, string | number> = {
+        page_text: pageText
+      };
+
+      if (gender) {
+        variables.gender = gender;
+      }
+
+      if (age !== undefined && age !== null) {
+        variables.age = age;
+      }
+
+      functions.logger.info("Generating image prompt with variables:", variables);
+
+      const result = await generateText({
+        prompt: { 
+          id: OPENAI_AGENTS.STORY_IMAGE_PROMPT,
+          variables: variables
+        },
+        input: pageText, // Use page text as the main input
+      });
+
+      // Save the generated prompt to Firestore if parameters are provided
+      if (storyId && updatePath) {
+        if (!environment) {
+          throw new functions.https.HttpsError(
+            "invalid-argument",
+            "environment is required when storyId and updatePath are provided"
+          );
+        }
+
+        functions.logger.info("Saving generated prompt to Firestore", {
+          storyId,
+          updatePath,
+          environment,
+          promptLength: result.length
+        });
+
+        try {
+          const storiesCollection = `stories_gen_${environment}`;
+          
+          // Get the document from the correct collection
+          const storyRef = admin.firestore().collection(storiesCollection).doc(storyId);
+          const docSnapshot = await storyRef.get();
+          
+          if (!docSnapshot.exists) {
+            throw new functions.https.HttpsError(
+              'not-found',
+              `Story document not found in ${storiesCollection}/${storyId}`
+            );
+          } else {
+            // Parse the updatePath to determine field to update
+            // updatePath format: "pages/0/selectedImageUrl" -> we want "pages/0/imagePrompt"
+            const pathParts = updatePath.split('/');
+            const pagesIndex = pathParts.indexOf('pages');
+            
+            if (pagesIndex !== -1 && pagesIndex + 1 < pathParts.length) {
+              const pageIndex = parseInt(pathParts[pagesIndex + 1], 10);
+              
+              // Read-modify-write for array updates
+              const storyData = docSnapshot.data();
+              if (storyData && Array.isArray(storyData.pages)) {
+                if (pageIndex >= 0 && pageIndex < storyData.pages.length) {
+                  const updatedPages = [...storyData.pages];
+                  if (!updatedPages[pageIndex]) {
+                    updatedPages[pageIndex] = {};
+                  }
+                  updatedPages[pageIndex].imagePrompt = result;
+
+                  await storyRef.update({
+                    pages: updatedPages,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                  });
+
+                  functions.logger.info(`Successfully saved prompt to Firestore for story ${storyId}, page index: ${pageIndex}`);
+                } else {
+                  functions.logger.warn(`Page index ${pageIndex} out of bounds`);
+                }
+              }
+            }
+          }
+        } catch (firestoreError) {
+          // Log error but don't fail the whole operation
+          functions.logger.error("Error saving prompt to Firestore:", firestoreError);
+          // Continue and return the prompt anyway
+        }
+      }
+
+      return {
+        success: true,
+        imagePrompt: result,
+      };
+    } catch (error) {
+      functions.logger.error("Error generating story image prompt:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate story image prompt: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
+/**
+ * Generate Image Prompt and Image (Combined)
+ * First generates an image prompt for a story page, then generates the image using that prompt
+ * 
+ * Request body:
+ * {
+ *   // Image prompt generation parameters
+ *   "pageText": "page text",
+ *   "pageNum": 1 (optional),
+ *   "gender": "male|female" (optional),
+ *   "age": 8 (optional),
+ *   
+ *   // Image generation parameters
+ *   "imageUrl": "url_to_kid_photo",
+ *   "accountId": "account_id",
+ *   "userId": "user_id",
+ *   "storyId": "story_id",
+ *   "updatePath": "firestore update path" (optional)
+ * }
+ */
+export const generateImagePromptAndImage = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '2GB'
+}).https.onCall(
+  async (data, context) => {
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      const { 
+        pageText, 
+        pageNum, 
+        gender, 
+        age,
+        imageUrl, 
+        accountId, 
+        userId, 
+        storyId, 
+        updatePath,
+        environment
+      } = data;
+
+      // Validate required parameters for image prompt generation
+      if (!pageText) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "pageText is required"
+        );
+      }
+
+      // Validate required parameters for image generation
+      if (!imageUrl || !accountId || !userId || !storyId || !environment) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "imageUrl, accountId, userId, storyId, and environment are required"
+        );
+      }
+
+      functions.logger.info("Step 1: Generating image prompt", {
+        pageText: pageText.substring(0, 50) + "...",
+        pageNum,
+        gender,
+        age
+      });
+
+      // Step 1: Generate the image prompt
+      // Build variables object for the prompt
+      const variables: Record<string, string | number> = {
+        page_text: pageText
+      };
+
+      if (gender) {
+        variables.gender = gender;
+      }
+
+      if (age !== undefined && age !== null) {
+        variables.age = age;
+      }
+
+      functions.logger.info("Generating image prompt with variables:", variables);
+
+      const imagePrompt = await generateText({
+        prompt: { 
+          id: OPENAI_AGENTS.STORY_IMAGE_PROMPT,
+          variables: variables
+        },
+        input: pageText, // Use page text as the main input
+      });
+
+      functions.logger.info("Step 2: Generating image with prompt", {
+        promptLength: imagePrompt.length,
+        storyId,
+        pageNum
+      });
+
+      // Step 2: Generate the image using the prompt
+      const base64Image = await generateImage({
+        prompt: { id: OPENAI_AGENTS.STORY_PAGE_IMAGE },
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: imagePrompt },
+              { type: "input_image", image_url: imageUrl },
+            ],
+          },
+        ],
+      });
+
+      // Save to Firebase Storage
+      const storageUrl = await saveImageToStorage(
+        base64Image,
+        accountId,
+        userId,
+        storyId,
+        'page',
+        pageNum
+      );
+
+      functions.logger.info("Step 3: Updating Firestore", {
+        storageUrl,
+        updatePath,
+        storyId
+      });
+
+      // Update Firestore with page image URL using updatePath from client
+      if (storyId && updatePath) {
+        const storiesCollection = `stories_gen_${environment}`;
+        
+        // Get the document from the correct collection
+        const storyRef = admin.firestore().collection(storiesCollection).doc(storyId);
+        const docSnapshot = await storyRef.get();
+        
+        if (!docSnapshot.exists) {
+          throw new functions.https.HttpsError(
+            "not-found",
+            `Story document not found in ${storiesCollection}/${storyId}`
+          );
+        }
+
+        // Correctly handle array update: read-modify-write
+        const storyData = docSnapshot.data();
+        if (!storyData || !Array.isArray(storyData.pages)) {
+          throw new functions.https.HttpsError("failed-precondition", "Pages field is not an array or does not exist.");
+        }
+
+        // Use pageNum directly as array index (0-based, no manipulation)
+        if (pageNum === undefined || pageNum === null || isNaN(pageNum) || pageNum < 0 || pageNum >= storyData.pages.length) {
+          throw new functions.https.HttpsError("out-of-range", `Page number ${pageNum} is out of bounds.`);
+        }
+
+        functions.logger.info(`Updating page at index ${pageNum}`, {
+          totalPages: storyData.pages.length,
+          pageNumFromClient: pageNum,
+          updatePath
+        });
+
+        // Modify the array in memory
+        const updatedPages = [...storyData.pages];
+        if (!updatedPages[pageNum]) {
+          updatedPages[pageNum] = {};
+        }
+        updatedPages[pageNum].selectedImageUrl = storageUrl;
+        updatedPages[pageNum].imagePrompt = imagePrompt; // Save the generated prompt
+
+        // Write the entire modified array back
+        await storyRef.update({
+          pages: updatedPages,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        functions.logger.info(`Successfully updated Firestore for story ${storyId}, page index: ${pageNum} with image URL and prompt`);
+      }
+
+      return {
+        success: true,
+        imagePrompt: imagePrompt,
+        imageUrl: storageUrl,
+      };
+    } catch (error) {
+      functions.logger.error("Error generating image prompt and image:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate image prompt and image: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
+
+/**
+ * Generate Kid Avatar Image
+ * Generates a Pixar-style avatar image for a kid
+ * 
+ * Request body:
+ * {
+ *   "imageUrl": "url_to_kid_photo",
+ *   "accountId": "account_id",
+ *   "userId": "user_id"
+ * }
+ */
+export const generateKidAvatarImage = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '2GB'
+}).https.onCall(
+  async (data, context) => {
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      const { imageUrl, accountId, userId } = data;
+
+      if (!imageUrl || !accountId || !userId) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "imageUrl, accountId, and userId are required"
+        );
+      }
+
+      // Generate the avatar image
+      const base64Image = await generateImage({
+        prompt: { id: OPENAI_AGENTS.KID_AVATAR_IMAGE },
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: "Create a Pixar-style avatar image for this child." },
+              { type: "input_image", image_url: imageUrl },
+            ],
+          },
+        ],
+      });
+
+      // Save to Firebase Storage
+      const storageUrl = await saveImageToStorage(
+        base64Image,
+        accountId,
+        userId,
+        '', // storyId not needed for avatar
+        'avatar'
+      );
+
+      // Update Firestore with avatar URL
+      await admin.firestore()
+        .collection('accounts')
+        .doc(accountId)
+        .collection('users')
+        .doc(userId)
+        .update({
+          avatarUrl: storageUrl,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+      return {
+        success: true,
+        imageUrl: storageUrl,
+      };
+    } catch (error) {
+      functions.logger.error("Error generating kid avatar image:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate kid avatar image: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
+/**
+ * Generate Story Page Image
+ * Generates an image for a specific story page
+ * 
+ * Request body:
+ * {
+ *   "imagePrompt": "detailed image prompt",
+ *   "imageUrl": "url_to_kid_photo",
+ *   "accountId": "account_id",
+ *   "userId": "user_id",
+ *   "storyId": "story_id",
+ *   "pageNum": 1 (optional)
+ * }
+ */
+export const generateStoryPageImage = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '2GB'
+}).https.onCall(
+  async (data, context) => {
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      // FIXME: pageNum is undefined. currenlty extracted from updatePath - not sure we need it. pages is array so we need to update the index (zero-based)
+      const { imagePrompt, imageUrl, accountId, userId, storyId, pageNum, updatePath, environment } = data;
+
+      console.log("Firebase function received data:", {
+        storyId,
+        accountId,
+        userId,
+        hasImagePrompt: !!imagePrompt,
+        pageNum,
+        updatePath,
+        environment
+      });
+
+      if (!imagePrompt || !imageUrl || !accountId || !userId || !storyId || !environment) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "imagePrompt, imageUrl, accountId, userId, storyId, and environment are required"
+        );
+      }
+
+      // Note: Story existence check removed - we'll rely on the updatePath from client
+      console.log("Using updatePath from client:", updatePath);
+
+      // Generate the page image
+      const base64Image = await generateImage({
+        prompt: { id: OPENAI_AGENTS.STORY_PAGE_IMAGE },
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: imagePrompt },
+              { type: "input_image", image_url: imageUrl },
+            ],
+          },
+        ],
+      });
+
+      // Save to Firebase Storage
+      const storageUrl = await saveImageToStorage(
+        base64Image,
+        accountId,
+        userId,
+        storyId,
+        'page',
+        pageNum
+      );
+
+      // Update Firestore with page image URL using updatePath from client
+      if (storyId && updatePath) {
+        console.log("Using updatePath from client:", updatePath);
+
+        // Get the story reference using storyId
+        const storiesCollection = `stories_gen_${environment}`;
+        
+        console.log("DEBUG: Environment and collection info:", {
+          environment,
+          storiesCollection,
+          storyId,
+          fullPath: `${storiesCollection}/${storyId}`
+        });
+
+        try {
+          // Get the document from the correct collection
+          const storyRef = admin.firestore().collection(storiesCollection).doc(storyId);
+          const docSnapshot = await storyRef.get();
+          
+          console.log("DEBUG: Document snapshot:", {
+            collection: storiesCollection,
+            exists: docSnapshot.exists,
+            id: docSnapshot.id,
+            hasData: docSnapshot.exists ? Object.keys(docSnapshot.data() || {}).length : 0
+          });
+          
+          if (!docSnapshot.exists) {
+            console.error(`Story document does not exist in ${storiesCollection}/${storyId}`);
+            throw new functions.https.HttpsError(
+              "not-found",
+              `Story document not found in ${storiesCollection}/${storyId}`
+            );
+          }
+
+          // Correctly handle array update: read-modify-write
+          const storyData = docSnapshot.data();
+          if (!storyData || !Array.isArray(storyData.pages)) {
+            throw new functions.https.HttpsError("failed-precondition", "Pages field is not an array or does not exist.");
+          }
+
+          // Use pageNum directly as array index (0-based, no manipulation)
+          if (pageNum === undefined || pageNum === null || isNaN(pageNum) || pageNum < 0 || pageNum >= storyData.pages.length) {
+            throw new functions.https.HttpsError("out-of-range", `Page number ${pageNum} is out of bounds.`);
+          }
+
+          functions.logger.info(`Updating page at index ${pageNum}`, {
+            totalPages: storyData.pages.length,
+            pageNumFromClient: pageNum,
+            updatePath
+          });
+
+          // Modify the array in memory
+          const updatedPages = [...storyData.pages];
+          if (!updatedPages[pageNum]) {
+            updatedPages[pageNum] = {}; // Ensure the page object exists
+          }
+          updatedPages[pageNum].selectedImageUrl = storageUrl;
+
+          // Write the entire modified array back
+          await storyRef.update({
+            pages: updatedPages,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          console.log(`Updated Firestore for story ${storyId}, page index: ${pageNum}`);
+        } catch (error) {
+          console.error(`Failed to update Firestore for story ${storyId}:`, error);
+          // Re-throw the error to fail the operation
+          throw error;
+        }
+      } else {
+        console.log('No storyId provided, skipping Firestore update (standalone image generation)');
+      }
+
+      return {
+        success: true,
+        imageUrl: storageUrl,
+      };
+    } catch (error) {
+      functions.logger.error("Error generating story page image:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate story page image: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
+/**
+ * Generate Story Cover Image
+ * Generates a cover image for a story in the specified style
+ * 
+ * Request body:
+ * {
+ *   "imageStyle": "3d Pixar",
+ *   "imageUrl": "url_to_kid_photo",
+ *   "storyTitle": "story title",
+ *   "imagePrompt": "optional custom prompt",
+ *   "accountId": "account_id",
+ *   "userId": "user_id",
+ *   "storyId": "story_id"
+ * }
+ */
+export const generateStoryCoverImage = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '2GB'
+}).https.onCall(
+  async (data, context) => {
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      const { imageStyle, imageUrl, storyTitle, imagePrompt, accountId, userId, storyId, environment } = data;
+
+      if (!imageStyle || !imageUrl || !storyTitle || !accountId || !userId || !storyId || !environment) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "imageStyle, imageUrl, storyTitle, accountId, userId, storyId, and environment are required"
+        );
+      }
+
+      functions.logger.info("Generating cover image with variables:", {
+        imageStyle,
+        storyTitle,
+        hasImagePrompt: !!imagePrompt,
+        hasImageUrl: !!imageUrl
+      });
+
+      // Build variables for the prompt
+      const variables: Record<string, string> = {
+        image_style: imageStyle,
+        image_url: imageUrl,
+        story_title: storyTitle,
+        image_prompt: imagePrompt || `Create a ${imageStyle} style cover image for the story titled: "${storyTitle}"`
+      };
+
+      // Generate the cover image with variables
+      const base64Image = await generateImage({
+        prompt: { 
+          id: OPENAI_AGENTS.STORY_COVER_IMAGE,
+          variables: variables
+        },
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: "" },
+              { type: "input_image", image_url: imageUrl },
+            ],
+          },
+        ],
+      });
+
+      // Save to Firebase Storage
+      const storageUrl = await saveImageToStorage(
+        base64Image,
+        accountId,
+        userId,
+        storyId,
+        'cover'
+      );
+
+      functions.logger.info("Step 2: Updating Firestore with cover image", {
+        storageUrl,
+        storyId,
+        environment
+      });
+
+      // Update Firestore with cover image URL using environment-based collection
+      const storiesCollection = `stories_gen_${environment}`;
+      
+      // Get the document from the correct collection
+      const storyRef = admin.firestore().collection(storiesCollection).doc(storyId);
+      const docSnapshot = await storyRef.get();
+      
+      if (!docSnapshot.exists) {
+        throw new functions.https.HttpsError(
+          "not-found",
+          `Story document not found in ${storiesCollection}/${storyId}`
+        );
+      }
+
+      await storyRef.update({
+        coverImageUrl: storageUrl,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      functions.logger.info(`Successfully updated cover image for story ${storyId}`);
+
+      return {
+        success: true,
+        imageUrl: storageUrl,
+      };
+    } catch (error) {
+      functions.logger.error("Error generating story cover image:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate story cover image: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
+// ============================================================================
+// HTTP VERSIONS (for direct fetch/axios calls)
+// ============================================================================
+
+/**
+ * Generate Story Page Image (HTTP API)
+ * Same as callable version but works with fetch/axios
+ * 
+ * POST /generateStoryPageImageHttp
+ * Headers: { "Authorization": "Bearer <firebase-token>" }
+ * Body: {
+ *   "imagePrompt": "detailed image prompt",
+ *   "imageUrl": "url_to_kid_photo",
+ *   "accountId": "account_id",
+ *   "userId": "user_id",
+ *   "storyId": "story_id",
+ *   "pageNum": 1 (optional)
+ * }
+ */
+export const generateStoryPageImageHttp = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '2GB'
+}).https.onRequest(
+  async (request, response) => {
+    // CORS headers
+    response.set('Access-Control-Allow-Origin', '*');
+    
+    if (request.method === 'OPTIONS') {
+      response.set('Access-Control-Allow-Methods', 'POST');
+      response.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      response.status(204).send('');
+      return;
+    }
+
+    if (request.method !== 'POST') {
+      response.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      // Get Firebase token from Authorization header
+      const authHeader = request.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        response.status(401).json({ error: 'Unauthorized - No token provided' });
+        return;
+      }
+
+      const token = authHeader.split('Bearer ')[1];
+      
+      // Verify token
+      await admin.auth().verifyIdToken(token);
+
+      const { imagePrompt, imageUrl, accountId, userId, storyId, pageNum, updatePath, environment } = request.body;
+
+      if (!imagePrompt || !imageUrl || !accountId || !userId || !storyId || !environment) {
+        response.status(400).json({
+          error: 'Missing required fields',
+          required: ['imagePrompt', 'imageUrl', 'accountId', 'userId', 'storyId', 'environment']
+        });
+        return;
+      }
+
+      // Check if story exists before generating image
+      const storiesCollection = `stories_gen_${environment}`;
+      
+      console.log("DEBUG: Environment and collection info (HTTP):", {
+        environment,
+        storiesCollection,
+        storyId,
+        fullPath: `${storiesCollection}/${storyId}`
+      });
+      
+      // Get the document from the correct collection
+      const storyRef = admin.firestore().collection(storiesCollection).doc(storyId);
+      const storyDoc = await storyRef.get();
+      
+      console.log("DEBUG: Document snapshot (HTTP):", {
+        collection: storiesCollection,
+        exists: storyDoc.exists,
+        id: storyDoc.id,
+        hasData: storyDoc.exists ? Object.keys(storyDoc.data() || {}).length : 0
+      });
+      
+      if (!storyDoc.exists) {
+        const errorMessage = `Story document not found in ${storiesCollection}/${storyId}`;
+        console.error(errorMessage);
+        
+        response.status(404).json({
+          error: errorMessage,
+          fullPath: `${storiesCollection}/${storyId}`,
+          storyId,
+          environment
+        });
+        return;
+      }
+      
+      console.log("Story found successfully (HTTP):", {
+        storyId,
+        storyTitle: storyDoc.data()?.title || 'No title',
+        storyExists: storyDoc.exists
+      });
+
+      // Generate the page image
+      const base64Image = await generateImage({
+        prompt: { id: OPENAI_AGENTS.STORY_PAGE_IMAGE },
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: imagePrompt },
+              { type: "input_image", image_url: imageUrl },
+            ],
+          },
+        ],
+      });
+
+      // Save to Firebase Storage
+      const storageUrl = await saveImageToStorage(
+        base64Image,
+        accountId,
+        userId,
+        storyId,
+        'page',
+        pageNum
+      );
+
+      // Update Firestore with page image URL using updatePath from client
+      if (storyId && updatePath) {
+        console.log("Using updatePath from client (HTTP):", updatePath);
+        
+        // Use updatePath directly - no parsing needed
+        const updateData: Record<string, admin.firestore.FieldValue | string> = {
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          [updatePath]: storageUrl
+        };
+
+        console.log("Updating Firestore with (HTTP):", {
+          field: updatePath,
+          value: storageUrl
+        });
+
+        // Get the story reference using storyId (environment already extracted from request.body)
+        const storiesCollectionForUpdate = `stories_gen_${environment}`;
+        const storyRef = admin.firestore().collection(storiesCollectionForUpdate).doc(storyId);
+
+        // Check if document exists before updating
+        const docSnapshot = await storyRef.get();
+        if (!docSnapshot.exists) {
+          console.error(`Story document does not exist: ${storyId}`);
+          response.status(404).json({
+            success: false,
+            error: `Story document not found: ${storyId}`
+          });
+          return;
+        }
+
+        await storyRef.update(updateData);
+        console.log(`Updated Firestore for story ${storyId}`);
+
+        response.status(200).json({
+          success: true,
+          imageUrl: storageUrl,
+        });
+      } else {
+        // If no updatePath provided, return error
+        response.status(400).json({
+          success: false,
+          error: 'updatePath is required'
+        });
+        return;
+      }
+    } catch (error) {
+      functions.logger.error("Error generating story page image (HTTP):", error);
+      response.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+);
+
+/**
+ * Generate Kid Avatar Image (HTTP API)
+ * Same as callable version but works with fetch/axios
+ * 
+ * POST /generateKidAvatarImageHttp
+ * Headers: { "Authorization": "Bearer <firebase-token>" }
+ * Body: {
+ *   "imageUrl": "url_to_kid_photo",
+ *   "accountId": "account_id",
+ *   "userId": "user_id"
+ * }
+ */
+export const generateKidAvatarImageHttp = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '2GB'
+}).https.onRequest(
+  async (request, response) => {
+    // CORS headers
+    response.set('Access-Control-Allow-Origin', '*');
+    
+    if (request.method === 'OPTIONS') {
+      response.set('Access-Control-Allow-Methods', 'POST');
+      response.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      response.status(204).send('');
+      return;
+    }
+
+    if (request.method !== 'POST') {
+      response.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      // Get Firebase token from Authorization header
+      const authHeader = request.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        response.status(401).json({ error: 'Unauthorized - No token provided' });
+        return;
+      }
+
+      const token = authHeader.split('Bearer ')[1];
+      
+      // Verify token
+      await admin.auth().verifyIdToken(token);
+
+      const { imageUrl, accountId, userId } = request.body;
+
+      if (!imageUrl || !accountId || !userId) {
+        response.status(400).json({
+          error: 'Missing required fields',
+          required: ['imageUrl', 'accountId', 'userId']
+        });
+        return;
+      }
+
+      // Generate the avatar image
+      const base64Image = await generateImage({
+        prompt: { id: OPENAI_AGENTS.KID_AVATAR_IMAGE },
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: "Create a Pixar-style avatar image for this child." },
+              { type: "input_image", image_url: imageUrl },
+            ],
+          },
+        ],
+      });
+
+      // Save to Firebase Storage
+      const storageUrl = await saveImageToStorage(
+        base64Image,
+        accountId,
+        userId,
+        '', // storyId not needed for avatar
+        'avatar'
+      );
+
+      // Update Firestore with avatar URL
+      await admin.firestore()
+        .collection('accounts')
+        .doc(accountId)
+        .collection('users')
+        .doc(userId)
+        .update({
+          avatarUrl: storageUrl,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+      response.status(200).json({
+        success: true,
+        imageUrl: storageUrl,
+      });
+    } catch (error) {
+      functions.logger.error("Error generating kid avatar image (HTTP):", error);
+      response.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+);
+
+/**
+ * Generate Story Cover Image (HTTP API)
+ * Same as callable version but works with fetch/axios
+ * 
+ * POST /generateStoryCoverImageHttp
+ * Headers: { "Authorization": "Bearer <firebase-token>" }
+ * Body: {
+ *   "imageStyle": "3d Pixar",
+ *   "imageUrl": "url_to_kid_photo",
+ *   "storyTitle": "story title",
+ *   "imagePrompt": "optional custom prompt",
+ *   "accountId": "account_id",
+ *   "userId": "user_id",
+ *   "storyId": "story_id"
+ * }
+ */
+export const generateStoryCoverImageHttp = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '2GB'
+}).https.onRequest(
+  async (request, response) => {
+    // CORS headers
+    response.set('Access-Control-Allow-Origin', '*');
+    
+    if (request.method === 'OPTIONS') {
+      response.set('Access-Control-Allow-Methods', 'POST');
+      response.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      response.status(204).send('');
+      return;
+    }
+
+    if (request.method !== 'POST') {
+      response.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      // Get Firebase token from Authorization header
+      const authHeader = request.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        response.status(401).json({ error: 'Unauthorized - No token provided' });
+        return;
+      }
+
+      const token = authHeader.split('Bearer ')[1];
+      
+      // Verify token
+      await admin.auth().verifyIdToken(token);
+
+      const { imageStyle, imageUrl, storyTitle, imagePrompt, accountId, userId, storyId, environment } = request.body;
+
+      if (!imageStyle || !imageUrl || !storyTitle || !accountId || !userId || !storyId || !environment) {
+        response.status(400).json({
+          error: 'Missing required fields',
+          required: ['imageStyle', 'imageUrl', 'storyTitle', 'accountId', 'userId', 'storyId', 'environment']
+        });
+        return;
+      }
+
+      functions.logger.info("Generating cover image (HTTP) with variables:", {
+        imageStyle,
+        storyTitle,
+        hasImagePrompt: !!imagePrompt,
+        hasImageUrl: !!imageUrl,
+        environment
+      });
+
+      // Build variables for the prompt
+      const variables: Record<string, string> = {
+        image_style: imageStyle,
+        image_url: imageUrl,
+        story_title: storyTitle,
+        image_prompt: imagePrompt || `Create a ${imageStyle} style cover image for the story titled: "${storyTitle}"`
+      };
+
+      // Generate the cover image with variables
+      const base64Image = await generateImage({
+        prompt: { 
+          id: OPENAI_AGENTS.STORY_COVER_IMAGE,
+          variables: variables
+        },
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: "" },
+              { type: "input_image", image_url: imageUrl },
+            ],
+          },
+        ],
+      });
+
+      // Save to Firebase Storage
+      const storageUrl = await saveImageToStorage(
+        base64Image,
+        accountId,
+        userId,
+        storyId,
+        'cover'
+      );
+
+      functions.logger.info("Step 2: Updating Firestore with cover image (HTTP)", {
+        storageUrl,
+        storyId,
+        environment
+      });
+
+      // Update Firestore with cover image URL using environment-based collection
+      const storiesCollection = `stories_gen_${environment}`;
+      
+      // Get the document from the correct collection
+      const storyRef = admin.firestore().collection(storiesCollection).doc(storyId);
+      const docSnapshot = await storyRef.get();
+      
+      if (!docSnapshot.exists) {
+        response.status(404).json({
+          error: `Story not found in ${storiesCollection}/${storyId}`,
+          storyId,
+          collection: storiesCollection
+        });
+        return;
+      }
+
+      await storyRef.update({
+        coverImageUrl: storageUrl,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      functions.logger.info(`Successfully updated cover image for story ${storyId} (HTTP)`);
+
+      response.status(200).json({
+        success: true,
+        imageUrl: storageUrl,
+      });
+    } catch (error) {
+      functions.logger.error("Error generating story cover image (HTTP):", error);
+      response.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+);
+
+/**
+ * Generate Full Story
+ * Complete end-to-end story generation including title, text, save to Firestore, and images
+ * 
+ * Request body:
+ * {
+ *   "userId": "user_id",
+ *   "kidId": "kid_id",
+ *   "problemDescription": "problem description",
+ *   "advantages": "advantages",
+ *   "disadvantages": "disadvantages",
+ *   "environment": "development" | "production"
+ * }
+ */
+export const generateFullStory = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '2GB'
+}).https.onCall(
+  async (data, context) => {
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      const { userId, kidId, problemDescription, advantages, disadvantages, environment } = data;
+
+      // Validate required parameters
+      if (!userId || !kidId || !problemDescription || !environment) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "userId, kidId, problemDescription, and environment are required"
+        );
+      }
+
+      functions.logger.info("Starting full story generation", { userId, kidId, environment });
+
+      // STEP 1: Get kid details from Firestore (5% progress)
+      functions.logger.info("Step 1: Fetching kid details from Firestore");
+      
+      // Use direct path with provided environment
+      const kidPath = `users_${environment}/${userId}/kids`;
+      const kidRef = admin.firestore().collection(kidPath).doc(kidId);
+      const kidDoc = await kidRef.get();
+      
+      if (!kidDoc.exists) {
+        functions.logger.error("Kid not found", { userId, kidId, path: kidPath });
+        throw new functions.https.HttpsError(
+          "not-found",
+          `Kid not found with ID: ${kidId} in environment: ${environment}`
+        );
+      }
+
+      const kidData = kidDoc.data();
+      if (!kidData) {
+        throw new functions.https.HttpsError(
+          "internal",
+          "Kid data is empty"
+        );
+      }
+
+      const kidName = kidData.name || "Child";
+      const kidGender = kidData.gender as 'male' | 'female';
+      const kidAge = kidData.age;
+      const kidImageUrl = kidData.imageUrl || kidData.avatarUrl;
+
+      functions.logger.info("Kid details retrieved", { kidName, kidGender, kidAge });
+
+      // Initialize story reference for status updates
+      const storyId = `story-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const storiesCollectionPath = `stories_gen_${environment}`;
+      const storyRef = admin.firestore().collection(storiesCollectionPath).doc(storyId);
+
+      // Helper function to update story status
+      const updateStatus = async (status: string, percentage: number) => {
+        try {
+          await storyRef.set({
+            id: storyId,
+            userId: userId,
+            kidId: kidId,
+            status: status,
+            progress: percentage,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+          functions.logger.info(`Status updated: ${status} (${percentage}%)`);
+        } catch (error) {
+          functions.logger.warn("Failed to update status:", error);
+        }
+      };
+
+      // Update: Starting (5%)
+      await updateStatus('progress_5', 5);
+
+      // STEP 2: Generate story titles and pick one randomly (10% progress)
+      functions.logger.info("Step 2: Generating story titles");
+      await updateStatus('progress_10', 10);
+      const titlesInput = `Name: ${kidName}
+Gender: ${kidGender}
+Problem Description: ${problemDescription}
+Age: ${kidAge} years old${advantages ? `\nAdvantages: ${advantages}` : ''}${disadvantages ? `\nDisadvantages: ${disadvantages}` : ''}`;
+
+      const titlesResult = await generateText({
+        prompt: { id: OPENAI_AGENTS.STORY_TITLES_TEXT },
+        input: titlesInput,
+      });
+
+      // Parse titles from response
+      let titles: string[];
+      try {
+        const parsed = JSON.parse(titlesResult);
+        titles = Array.isArray(parsed) ? parsed : (parsed.titles || []);
+      } catch (parseError) {
+        functions.logger.error("Failed to parse titles:", parseError);
+        throw new functions.https.HttpsError(
+          "internal",
+          "Failed to parse generated titles"
+        );
+      }
+
+      if (!titles || titles.length === 0) {
+        throw new functions.https.HttpsError(
+          "internal",
+          "No titles were generated"
+        );
+      }
+
+      // Pick a random title
+      const selectedTitle = titles[Math.floor(Math.random() * titles.length)];
+      functions.logger.info("Story title selected", { selectedTitle });
+
+      // Update: Title generated (20%)
+      await updateStatus('progress_20', 20);
+
+      // STEP 3: Generate story pages text (30% progress)
+      functions.logger.info("Step 3: Generating story pages text");
+
+      const storyTextResult = await generateAndSaveStoryPagesText({
+        name: kidName,
+        problemDescription,
+        title: selectedTitle,
+        age: kidAge,
+        advantages: advantages || "",
+        disadvantages: disadvantages || "",
+        accountId: userId,
+        userId: userId,
+        storyId: storyId,
+      });
+
+      functions.logger.info("Story pages text generated successfully");
+
+      // Update: Story text generated (40%)
+      await updateStatus('progress_40', 40);
+
+      // STEP 4: Parse the story text to extract pages (45% progress)
+      functions.logger.info("Step 4: Parsing story text into pages");
+      
+      // Parse the AI response to get structured pages
+      // The response should be in JSON format with pages array
+      let storyPages;
+      try {
+        const parsed = JSON.parse(storyTextResult.text);
+        storyPages = parsed.pages || parsed;
+        
+        if (!Array.isArray(storyPages)) {
+          throw new Error("Parsed result is not an array of pages");
+        }
+      } catch (parseError) {
+        functions.logger.error("Failed to parse story pages:", parseError);
+        throw new functions.https.HttpsError(
+          "internal",
+          "Failed to parse story pages from generated text"
+        );
+      }
+
+      functions.logger.info(`Parsed ${storyPages.length} pages`);
+
+      // Update: Pages parsed (50%)
+      await updateStatus('progress_50', 50);
+
+      // STEP 5: Save the complete story to Firestore (55% progress)
+      functions.logger.info("Step 5: Saving story to Firestore");
+
+      const storyData = {
+        id: storyId,
+        userId: userId,
+        kidId: kidId,
+        title: selectedTitle,
+        problemDescription: problemDescription,
+        advantages: advantages || "",
+        disadvantages: disadvantages || "",
+        status: 'generating_images',
+        pages: storyPages.map((page: any, index: number) => ({
+          pageNum: index,
+          pageType: page.pageType || 'NORMAL',
+          storyText: page.storyText || page.text || '',
+          imagePrompt: page.imagePrompt || '',
+          selectedImageUrl: '', // Will be filled by image generation
+        })),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      await storyRef.set(storyData);
+      functions.logger.info("Story saved to Firestore");
+
+      // Update: Story saved (60%)
+      await updateStatus('progress_60', 60);
+
+      // STEP 6: Generate image prompts for all pages (60-70% progress)
+      functions.logger.info("Step 6: Generating image prompts");
+      
+      // Check if pages already have image prompts
+      const pagesNeedingPrompts = storyPages.filter((page: any) => !page.imagePrompt || page.imagePrompt.trim() === '');
+      
+      if (pagesNeedingPrompts.length > 0) {
+        functions.logger.info(`Generating image prompts for ${pagesNeedingPrompts.length} pages`);
+        
+        // Generate image prompts for each page individually
+        let promptsGenerated = 0;
+        for (const page of storyPages) {
+          if (!page.imagePrompt || page.imagePrompt.trim() === '') {
+            try {
+              const pageText = page.storyText || page.text || '';
+              
+              // Build variables for the image prompt
+              const variables: Record<string, string | number> = {
+                page_text: pageText,
+                gender: kidGender,
+                age: kidAge
+              };
+              
+              functions.logger.info(`Generating image prompt for page ${page.pageNum}`, { variables });
+              
+              const imagePrompt = await generateText({
+                prompt: { 
+                  id: OPENAI_AGENTS.STORY_IMAGE_PROMPT,
+                  variables: variables
+                },
+                input: pageText,
+              });
+              
+              page.imagePrompt = imagePrompt;
+              functions.logger.info(`Generated image prompt for page ${page.pageNum}`);
+              
+              // Update progress for prompts (60% to 70%)
+              promptsGenerated++;
+              const promptProgress = 60 + Math.floor((promptsGenerated / pagesNeedingPrompts.length) * 10);
+              await updateStatus(`progress_${promptProgress}`, promptProgress);
+            } catch (promptError) {
+              functions.logger.error(`Failed to generate image prompt for page ${page.pageNum}:`, promptError);
+              // Continue with other pages
+            }
+          }
+        }
+        
+        // Update Firestore with image prompts
+        await storyRef.update({
+          pages: storyPages.map((page: any, index: number) => ({
+            pageNum: index,
+            pageType: page.pageType || 'NORMAL',
+            storyText: page.storyText || page.text || '',
+            imagePrompt: page.imagePrompt || '',
+            selectedImageUrl: '',
+          })),
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        functions.logger.info("All pages already have image prompts, skipping generation");
+        await updateStatus('progress_70', 70);
+      }
+
+      // STEP 7: Generate images for all pages (70-95% progress)
+      functions.logger.info("Step 7: Generating images for all pages");
+      
+      if (!kidImageUrl) {
+        functions.logger.warn("No kid image URL found, skipping image generation");
+        await storyRef.update({
+          status: 'completed',
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        
+        return {
+          success: true,
+          storyId: storyId,
+          title: selectedTitle,
+          pagesCount: storyPages.length,
+          message: "Story generated successfully, but images cannot be generated without a kid photo",
+        };
+      }
+
+      // Generate images for each page (in sequence to avoid overwhelming the system)
+      const imageGenerationResults = [];
+      functions.logger.info(`Starting image generation for ${storyPages.length} pages`);
+      
+      for (let i = 0; i < storyPages.length; i++) {
+        const page = storyPages[i];
+        
+        // Update progress for images (70% to 95%)
+        const imageProgress = 70 + Math.floor(((i + 1) / storyPages.length) * 25);
+        await updateStatus(`progress_${imageProgress}`, imageProgress);
+        
+        functions.logger.info(`Generating image for page ${i + 1}/${storyPages.length}`);
+        
+        try {
+          if (!page.imagePrompt || page.imagePrompt.trim() === '') {
+            functions.logger.warn(`Skipping page ${i} - no image prompt`);
+            imageGenerationResults.push({ pageNum: i, success: false, error: "No image prompt" });
+            continue;
+          }
+
+          functions.logger.info(`Calling OpenAI image generation for page ${i}`);
+          const base64Image = await generateImage({
+            prompt: { id: OPENAI_AGENTS.STORY_PAGE_IMAGE },
+            input: [
+              {
+                role: "user",
+                content: [
+                  { type: "input_text", text: page.imagePrompt },
+                  { type: "input_image", image_url: kidImageUrl },
+                ],
+              },
+            ],
+          });
+
+          functions.logger.info(`Image generated, now saving to storage for page ${i}`);
+          // Save image to Storage
+          const imageStorageUrl = await saveImageToStorage(
+            base64Image,
+            userId,
+            userId,
+            storyId,
+            'page',
+            i
+          );
+
+          functions.logger.info(`Image saved to storage: ${imageStorageUrl}, updating Firestore for page ${i}`);
+          // Update the page in the local array
+          storyPages[i].selectedImageUrl = imageStorageUrl;
+          
+          // Update the entire pages array in Firestore to preserve all page data
+          await storyRef.update({
+            pages: storyPages.map((page: any, index: number) => ({
+              pageNum: index,
+              storyText: page.storyText || page.text || '',
+              choices: page.choices || [],
+              imagePrompt: page.imagePrompt || '',
+              selectedImageUrl: page.selectedImageUrl || '',
+            })),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          imageGenerationResults.push({ pageNum: i, success: true, imageUrl: imageStorageUrl });
+          functions.logger.info(`Successfully completed image generation for page ${i + 1}/${storyPages.length}`);
+        } catch (imageError) {
+          functions.logger.error(`ERROR: Failed to generate image for page ${i}/${storyPages.length}:`, imageError);
+          functions.logger.error(`Error details:`, {
+            message: imageError instanceof Error ? imageError.message : "Unknown error",
+            stack: imageError instanceof Error ? imageError.stack : undefined,
+            pageNum: i
+          });
+          imageGenerationResults.push({ 
+            pageNum: i, 
+            success: false, 
+            error: imageError instanceof Error ? imageError.message : "Unknown error" 
+          });
+          // Continue to next page even if this one failed
+          functions.logger.info(`Continuing to next page after error on page ${i}`);
+        }
+      }
+      
+      functions.logger.info(`Completed image generation loop. Results: ${imageGenerationResults.length} total, ${imageGenerationResults.filter(r => r.success).length} successful`);
+
+      // STEP 8: Mark story as complete (100% progress)
+      functions.logger.info("Step 8: Marking story as complete");
+      await storyRef.update({
+        status: 'completed',
+        progress: 100,
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      const successfulImages = imageGenerationResults.filter(r => r.success).length;
+      
+      return {
+        success: true,
+        storyId: storyId,
+        title: selectedTitle,
+        pagesCount: storyPages.length,
+        imagesGenerated: successfulImages,
+        imageResults: imageGenerationResults,
+        message: `Story generated successfully with ${successfulImages}/${storyPages.length} images`,
+      };
+    } catch (error) {
+      functions.logger.error("Error in generateFullStory:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate full story: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
+/**
+ * Generate Story Titles
+ * Generates story titles using the new STORY_TITLES_TEXT agent
+ * 
+ * Request body:
+ * {
+ *   "name": "kid name",
+ *   "gender": "male|female",
+ *   "problemDescription": "problem description",
+ *   "age": 8,
+ *   "advantages": "optional advantages",
+ *   "disadvantages": "optional disadvantages"
+ * }
+ */
+export const generateStoryTitles = functions.https.onCall(
+  async (data, context) => {
+    if (!context?.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
+    }
+
+    try {
+      const { name, gender, problemDescription, age, advantages, disadvantages } = data;
+
+      if (!name || !gender || !problemDescription || !age) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "name, gender, problemDescription, and age are required"
+        );
+      }
+
+      // Build the input with required fields
+      let input = `Name: ${name}
+Gender: ${gender}
+Problem Description: ${problemDescription}
+Age: ${age} years old`;
+
+      // Add optional fields if provided
+      if (advantages && advantages.trim()) {
+        input += `\nAdvantages: ${advantages}`;
+      }
+
+      if (disadvantages && disadvantages.trim()) {
+        input += `\nDisadvantages: ${disadvantages}`;
+      }
+
+      const result = await generateText({
+        prompt: { id: OPENAI_AGENTS.STORY_TITLES_TEXT },
+        input: input,
+      });
+
+      // Validate that we got a response
+      if (!result || typeof result !== 'string' || result.trim().length === 0) {
+        functions.logger.error("Empty or invalid response from generateText:", result);
+        throw new functions.https.HttpsError(
+          "internal",
+          "No response received from AI service"
+        );
+      }
+
+      // Parse the JSON response to ensure it's valid
+      let titles;
+      try {
+        // Try to find and parse JSON from the response
+        let jsonToParse: string | null = null;
+        const trimmedResult = result.trim();
+        
+        // First, try to parse the entire response if it looks like JSON
+        if ((trimmedResult.startsWith('{') && trimmedResult.endsWith('}')) ||
+            (trimmedResult.startsWith('[') && trimmedResult.endsWith(']'))) {
+          jsonToParse = trimmedResult;
+        } else {
+          // Try to find JSON objects or arrays in the response using greedy matching
+          // Find the last complete JSON object or array
+          const objectMatches = result.match(/\{[\s\S]*\}/g);
+          if (objectMatches && objectMatches.length > 0) {
+            jsonToParse = objectMatches[objectMatches.length - 1];
+          } else {
+            const arrayMatches = result.match(/\[[\s\S]*\]/g);
+            if (arrayMatches && arrayMatches.length > 0) {
+              jsonToParse = arrayMatches[arrayMatches.length - 1];
+            }
+          }
+        }
+        
+        if (!jsonToParse) {
+          functions.logger.error("No JSON found in response:", result);
+          throw new Error("No JSON found in response");
+        }
+        
+        functions.logger.info("Extracted JSON to parse:", jsonToParse);
+        functions.logger.info("JSON string length:", jsonToParse.length);
+        functions.logger.info("JSON starts with:", jsonToParse.substring(0, 10));
+        functions.logger.info("JSON ends with:", jsonToParse.substring(jsonToParse.length - 10));
+
+        let parsed: unknown;
+        try {
+          // Handle the specific format {titles=[...]} which is not valid JSON
+          let processedJson = jsonToParse;
+          if (processedJson.includes('{titles=[') && processedJson.includes(']}')) {
+            // Convert {titles=[...]} to {"titles": [...]}
+            processedJson = processedJson.replace(
+              /\{titles=\[(.*?)\]\}/s,
+              '{"titles": [$1]}'
+            );
+            functions.logger.info("Processed malformed JSON format:", processedJson);
+          }
+          
+          parsed = JSON.parse(processedJson);
+        } catch (jsonError) {
+          functions.logger.error("JSON parsing failed:", jsonError);
+          functions.logger.error("Failed to parse this JSON:", jsonToParse);
+          // Try to clean up the JSON string and parse again
+          // Remove any leading/trailing non-JSON characters
+          let cleanedJson = jsonToParse.trim();
+          if (!cleanedJson.startsWith('{') && !cleanedJson.startsWith('[')) {
+            // Find the first { or [ character
+            const firstBrace = cleanedJson.indexOf('{');
+            const firstBracket = cleanedJson.indexOf('[');
+            const startIndex = Math.min(
+              firstBrace === -1 ? cleanedJson.length : firstBrace,
+              firstBracket === -1 ? cleanedJson.length : firstBracket
+            );
+            if (startIndex < cleanedJson.length) {
+              cleanedJson = cleanedJson.substring(startIndex);
+            }
+          }
+          
+          if (!cleanedJson.endsWith('}') && !cleanedJson.endsWith(']')) {
+            // Find the last } or ] character
+            const lastBrace = cleanedJson.lastIndexOf('}');
+            const lastBracket = cleanedJson.lastIndexOf(']');
+            const endIndex = Math.max(lastBrace, lastBracket) + 1;
+            if (endIndex > 0) {
+              cleanedJson = cleanedJson.substring(0, endIndex);
+            }
+          }
+          
+          if (cleanedJson !== jsonToParse) {
+            functions.logger.info("Attempting to parse cleaned JSON:", cleanedJson);
+            
+            // Apply the same preprocessing for the malformed format
+            let processedCleanedJson = cleanedJson;
+            if (processedCleanedJson.includes('{titles=[') && processedCleanedJson.includes(']}')) {
+              processedCleanedJson = processedCleanedJson.replace(
+                /\{titles=\[(.*?)\]\}/s,
+                '{"titles": [$1]}'
+              );
+              functions.logger.info("Processed cleaned malformed JSON format:", processedCleanedJson);
+            }
+            
+            try {
+              parsed = JSON.parse(processedCleanedJson);
+            } catch (cleanedError) {
+              functions.logger.error("Cleaned JSON also failed to parse:", cleanedError);
+              throw new Error(`JSON parsing failed: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
+            }
+          } else {
+            throw new Error(`JSON parsing failed: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
+          }
+        }
+        
+        functions.logger.info("Parsed JSON response:", parsed);
+        
+        // Handle both object format {"titles": [...]} and direct array format [...]
+        if (Array.isArray(parsed)) {
+          // Direct array format: ["title1", "title2", ...]
+          titles = parsed;
+        } else if (parsed && typeof parsed === 'object' && 'titles' in parsed) {
+          // Object format: {"titles": ["title1", "title2", ...]}
+          const parsedObj = parsed as { titles: unknown };
+          titles = parsedObj.titles;
+        } else {
+          functions.logger.error("Invalid response format - neither array nor object with titles:", parsed);
+          throw new Error("Invalid response format - expected array or object with titles property");
+        }
+
+        // Validate that titles is an array
+        if (!Array.isArray(titles)) {
+          functions.logger.error("Titles is not an array:", titles);
+          throw new Error("Titles must be an array");
+        }
+
+        if (titles.length === 0) {
+          functions.logger.error("Empty titles array in response:", titles);
+          throw new Error("No titles generated - empty array returned");
+        }
+
+        // Validate that titles are strings
+        const invalidTitles = titles.filter((title: unknown) => typeof title !== 'string' || title.trim().length === 0);
+        if (invalidTitles.length > 0) {
+          functions.logger.error("Invalid titles found:", invalidTitles);
+          throw new Error("Some generated titles are invalid or empty");
+        }
+      } catch (parseError) {
+        functions.logger.error("Error parsing titles JSON:", parseError);
+        functions.logger.error("Raw response was:", result);
+        throw new functions.https.HttpsError(
+          "internal",
+          `Failed to parse generated titles: ${parseError instanceof Error ? parseError.message : "Unknown parse error"}`
+        );
+      }
+
+      return {
+        success: true,
+        titles: titles,
+      };
+    } catch (error) {
+      functions.logger.error("Error generating story titles:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        `Failed to generate story titles: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+);
+
