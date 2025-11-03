@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "@choiceStoryWeb/firebase";
+import { onAuthStateChanged, auth } from "@choiceStoryWeb/firebase";
 import { User } from "firebase/auth";
 import { useTranslation } from "./hooks/useTranslation";
 import { useFirestore } from "./hooks/useFirestore";
@@ -14,12 +14,23 @@ export default function Home() {
 
   useEffect(() => {
     // Listen for auth state changes
-    const unsubscribe = onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
-    });
+    if (!auth) {
+      // Firebase not initialized during build time
+      setUser(null);
+      return;
+    }
+    
+    try {
+      const unsubscribe = onAuthStateChanged((currentUser) => {
+        setUser(currentUser);
+      });
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+      // Cleanup subscription on unmount
+      return () => unsubscribe();
+    } catch (error) {
+      // Firebase not initialized
+      setUser(null);
+    }
   }, []);
 
   // Authentication functions removed as they are currently unused

@@ -5,7 +5,12 @@ import { firebaseAdmin } from '@/app/services/firebase-admin.service';
 
 // Get bucket name from environment
 const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-console.log("[UPLOAD_IMAGE] Storage Bucket Name:", bucketName);
+
+// Only log during runtime, not during build
+const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.FIREBASE_PROJECT_ID);
+if (!isBuildTime) {
+  console.log("[UPLOAD_IMAGE] Storage Bucket Name:", bucketName);
+}
 
 // Add a direct HTTP upload fallback that works in any environment
 async function uploadWithDirectHTTP(
