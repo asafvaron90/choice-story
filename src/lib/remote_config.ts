@@ -233,6 +233,9 @@ function initializeRemoteConfig(): RemoteConfig {
         span.setAttribute("environment", "client");
         span.setAttribute("initialized", true);
         
+        if (!app) {
+          throw new Error('Firebase app is not initialized. Please check your Firebase configuration.');
+        }
         remoteConfig = getRemoteConfig(app);
         // Set minimum fetch interval to 1 hour for development
         remoteConfig.settings.minimumFetchIntervalMillis = 3600000;

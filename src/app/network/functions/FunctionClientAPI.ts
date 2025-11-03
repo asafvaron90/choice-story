@@ -187,10 +187,17 @@ export interface GenerateFullStoryResponse {
 // ============================================================================
 
 export class FunctionClientAPI {
-  private functionsInstance;
+  private functionsInstance: ReturnType<typeof import('firebase/functions').getFunctions> | null;
 
   constructor() {
     this.functionsInstance = functions;
+  }
+
+  private ensureFunctionsInitialized() {
+    if (!this.functionsInstance) {
+      throw new Error('Firebase Functions is not initialized. Please check your Firebase configuration.');
+    }
+    return this.functionsInstance;
   }
 
   /**
@@ -201,10 +208,11 @@ export class FunctionClientAPI {
     request: StoryPagesTextRequest
   ): Promise<StoryPagesTextResponse> {
     try {
+      const functionsInstance = this.ensureFunctionsInitialized();
       const generateStoryPagesText = httpsCallable<
         StoryPagesTextRequest,
         StoryPagesTextResponse
-      >(this.functionsInstance, 'generateStoryPagesText', {
+      >(functionsInstance, 'generateStoryPagesText', {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -223,10 +231,11 @@ export class FunctionClientAPI {
     request: StoryImagePromptRequest
   ): Promise<StoryImagePromptResponse> {
     try {
+      const functionsInstance = this.ensureFunctionsInitialized();
       const generateStoryImagePrompt = httpsCallable<
         StoryImagePromptRequest,
         StoryImagePromptResponse
-      >(this.functionsInstance, 'generateStoryImagePrompt', {
+      >(functionsInstance, 'generateStoryImagePrompt', {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -246,10 +255,11 @@ export class FunctionClientAPI {
     request: MultipleStoryImagePromptsRequest
   ): Promise<MultipleStoryImagePromptsResponse> {
     try {
+      const functionsInstance = this.ensureFunctionsInitialized();
       const generateStoryImagePrompt = httpsCallable<
         MultipleStoryImagePromptsRequest,
         MultipleStoryImagePromptsResponse
-      >(this.functionsInstance, 'generateStoryImagePrompt', {
+      >(functionsInstance, 'generateStoryImagePrompt', {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -268,10 +278,11 @@ export class FunctionClientAPI {
     request: KidAvatarImageRequest
   ): Promise<KidAvatarImageResponse> {
     try {
+      const functionsInstance = this.ensureFunctionsInitialized();
       const generateKidAvatarImage = httpsCallable<
         KidAvatarImageRequest,
         KidAvatarImageResponse
-      >(this.functionsInstance, 'generateKidAvatarImage', {
+      >(functionsInstance, 'generateKidAvatarImage', {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -290,10 +301,11 @@ export class FunctionClientAPI {
     request: StoryPageImageRequest
   ): Promise<StoryPageImageResponse> {
     try {
+      const functionsInstance = this.ensureFunctionsInitialized();
       const generateStoryPageImage = httpsCallable<
         StoryPageImageRequest,
         StoryPageImageResponse
-      >(this.functionsInstance, 'generateStoryPageImage', {
+      >(functionsInstance, 'generateStoryPageImage', {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -312,10 +324,11 @@ export class FunctionClientAPI {
     request: StoryCoverImageRequest
   ): Promise<StoryCoverImageResponse> {
     try {
+      const functionsInstance = this.ensureFunctionsInitialized();
       const generateStoryCoverImage = httpsCallable<
         StoryCoverImageRequest,
         StoryCoverImageResponse
-      >(this.functionsInstance, 'generateStoryCoverImage', {
+      >(functionsInstance, 'generateStoryCoverImage', {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -334,10 +347,11 @@ export class FunctionClientAPI {
     request: StoryTitlesRequest
   ): Promise<StoryTitlesResponse> {
     try {
+      const functionsInstance = this.ensureFunctionsInitialized();
       const generateStoryTitles = httpsCallable<
         StoryTitlesRequest,
         StoryTitlesResponse
-      >(this.functionsInstance, 'generateStoryTitles', {
+      >(functionsInstance, 'generateStoryTitles', {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -357,10 +371,11 @@ export class FunctionClientAPI {
     request: GenerateImagePromptAndImageRequest
   ): Promise<GenerateImagePromptAndImageResponse> {
     try {
+      const functionsInstance = this.ensureFunctionsInitialized();
       const generateImagePromptAndImage = httpsCallable<
         GenerateImagePromptAndImageRequest,
         GenerateImagePromptAndImageResponse
-      >(this.functionsInstance, 'generateImagePromptAndImage', {
+      >(functionsInstance, 'generateImagePromptAndImage', {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -380,10 +395,11 @@ export class FunctionClientAPI {
     request: GenerateFullStoryRequest
   ): Promise<GenerateFullStoryResponse> {
     try {
+      const functionsInstance = this.ensureFunctionsInitialized();
       const generateFullStory = httpsCallable<
         GenerateFullStoryRequest,
         GenerateFullStoryResponse
-      >(this.functionsInstance, 'generateFullStory', {
+      >(functionsInstance, 'generateFullStory', {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 

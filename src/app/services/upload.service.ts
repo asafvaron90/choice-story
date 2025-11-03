@@ -13,6 +13,9 @@ export class UploadService {
    */
   static async uploadFile(file: File, path: string): Promise<string> {
     try {
+      if (!storage) {
+        throw new Error('Firebase Storage is not initialized. Please check your Firebase configuration.');
+      }
       // Create storage reference
       const storageRef = ref(storage, path);
       

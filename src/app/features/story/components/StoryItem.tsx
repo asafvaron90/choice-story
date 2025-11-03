@@ -53,7 +53,7 @@ const StoryItem: FC<StoryItemProps> = ({
         console.log(`No direct URL for story ${id}, trying Firebase Storage`);
         const loadImageFromStorage = async () => {
           try {
-            if (!story.userId || !story.kidId) return;
+            if (!story.userId || !story.kidId || !storage) return;
             
             const folderPath = `users/${story.userId}/${story.kidId}/stories/${id}`;
             const fileName = `${StoryImageType.STORY_COVER}.png`;

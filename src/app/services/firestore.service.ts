@@ -35,6 +35,10 @@ class FirestoreService {
       
       // Only initialize if on client side
       if (isClient) {
+        if (!app) {
+          console.error('[FIRESTORE_CLIENT] Firebase app is not initialized');
+          return;
+        }
         this.db = getFirestore(app);
         console.log('[FIRESTORE_CLIENT] Initialized with environment:', this.environment);
       } else {
@@ -52,6 +56,9 @@ class FirestoreService {
         throw new Error('Firestore not initialized. This service should only be used on the client side.');
       } else {
         // Try to initialize now (might happen if constructor error occurred)
+        if (!app) {
+          throw new Error('Firebase app is not initialized. Please check your Firebase configuration.');
+        }
         this.db = getFirestore(app);
         if (!this.db) {
           throw new Error('Failed to initialize Firestore.');

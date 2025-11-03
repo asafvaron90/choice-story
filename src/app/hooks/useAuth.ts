@@ -7,6 +7,12 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!app) {
+      console.error('Firebase app is not initialized');
+      setLoading(false);
+      return;
+    }
+    
     const auth = getAuth(app);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
@@ -14,7 +20,7 @@ export function useAuth() {
     });
 
     return () => unsubscribe();
-  }, []);  // Dependencies can be empty since setUser and setLoading are stable state setters
+  }, [app]);  // Include app in dependencies
 
   return { user, loading };
 } 
