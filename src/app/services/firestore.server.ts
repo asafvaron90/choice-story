@@ -106,7 +106,7 @@ class FirestoreServerService {
    * Get user (account) data by UID - alias for getAccountByUid
    * @param uid User's Firebase Auth UID
    */
-  async getUserByUid(uid: string) {
+  async getUserByUid(uid: string): Promise<Account | null> {
     return this.getAccountByUid(uid);
   }
 
@@ -505,7 +505,7 @@ class FirestoreServerService {
   /**
    * Get account data by UID
    */
-  async getAccountByUid(uid: string) {
+  async getAccountByUid(uid: string): Promise<Account | null> {
     try {
       this.ensureInitialized();
       
@@ -518,9 +518,13 @@ class FirestoreServerService {
       }
 
       const data = accountDoc.data();
-      const account = {
-        ...data,
+      const account: Account = {
         uid,
+        email: data?.email || '',
+        displayName: data?.displayName,
+        photoURL: data?.photoURL,
+        phoneNumber: data?.phoneNumber,
+        metadata: data?.metadata,
         createAt: data?.createAt instanceof Date ? data.createAt : 
           (data?.createAt?.toDate ? data.createAt.toDate() : new Date()),
         lastUpdated: data?.lastUpdated instanceof Date ? data.lastUpdated : 
@@ -538,7 +542,7 @@ class FirestoreServerService {
   /**
    * Get account data by email
    */
-  async getAccountByEmail(email: string) {
+  async getAccountByEmail(email: string): Promise<Account | null> {
     try {
       this.ensureInitialized();
       
@@ -553,9 +557,13 @@ class FirestoreServerService {
 
       const doc = querySnapshot.docs[0];
       const data = doc.data();
-      const account = {
-        ...data,
+      const account: Account = {
         uid: doc.id,
+        email: data?.email || email,
+        displayName: data?.displayName,
+        photoURL: data?.photoURL,
+        phoneNumber: data?.phoneNumber,
+        metadata: data?.metadata,
         createAt: data?.createAt instanceof Date ? data.createAt : 
           (data?.createAt?.toDate ? data.createAt.toDate() : new Date()),
         lastUpdated: data?.lastUpdated instanceof Date ? data.lastUpdated : 

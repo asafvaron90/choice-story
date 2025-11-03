@@ -142,7 +142,7 @@ class FirestoreService {
    * Get user (account) data by UID - alias for getAccountByUid
    * @param uid User's Firebase Auth UID
    */
-  async getUserByUid(uid: string) {
+  async getUserByUid(uid: string): Promise<Account | null> {
     return this.getAccountByUid(uid);
   }
 
@@ -333,12 +333,16 @@ class FirestoreService {
       }
 
       const data = accountSnap.data();
-      const account = {
-        ...data,
+      const account: Account = {
         uid,
+        email: data.email || '',
+        displayName: data.displayName,
+        photoURL: data.photoURL,
+        phoneNumber: data.phoneNumber,
+        metadata: data.metadata,
         createAt: data.createAt?.toDate ? data.createAt.toDate() : new Date(),
         lastUpdated: data.lastUpdated?.toDate ? data.lastUpdated.toDate() : new Date(),
-      } as Account;
+      };
       return account;
     } catch (error) {
       console.error('Error fetching account by uid:', error);
@@ -363,14 +367,18 @@ class FirestoreService {
         return null;
       }
 
-      const doc = querySnapshot.docs[0];
-      const data = doc.data();
-      const account = {
-        ...data,
-        uid: doc.id,
+      const docSnap = querySnapshot.docs[0];
+      const data = docSnap.data();
+      const account: Account = {
+        uid: docSnap.id,
+        email: data.email || email,
+        displayName: data.displayName,
+        photoURL: data.photoURL,
+        phoneNumber: data.phoneNumber,
+        metadata: data.metadata,
         createAt: data.createAt?.toDate ? data.createAt.toDate() : new Date(),
         lastUpdated: data.lastUpdated?.toDate ? data.lastUpdated.toDate() : new Date(),
-      } as Account;
+      };
       return account;
     } catch (error) {
       console.error('Error fetching account by email:', error);

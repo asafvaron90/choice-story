@@ -6,17 +6,13 @@
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
-    "target": "ES2019",
-    "lib": ["ES2019"],
+    "target": "ES2018",
+    "lib": ["ES2018"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "declaration": true,
-    "moduleResolution": "node",
-    "baseUrl": "./src",
-    "paths": {
-      "*": ["*", "lib/*"]
-    }
+    "moduleResolution": "node"
   },
   "compileOnSave": true,
   "include": [

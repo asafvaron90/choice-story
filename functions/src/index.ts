@@ -3,7 +3,7 @@ import * as admin from "firebase-admin";
 import { generateText } from "./text-generation";
 import { generateImage } from "./image-generation";
 import { OPENAI_AGENTS } from "./open-ai-agents";
-import { FirestoreHelper } from "./lib";
+import { FirestoreHelper } from "./lib/firestore-helper";
 
 // Initialize Firebase Admin
 admin.initializeApp();
