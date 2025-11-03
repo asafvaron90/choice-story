@@ -17,12 +17,15 @@ export const IS_DEV: boolean = NODE_ENV === ENV_DEV;
 export function getFirebaseEnvironment(): string {
   // Check if we're on client or server
   const isClient = typeof window !== 'undefined';
+  const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && !isClient && !process.env.FIREBASE_PROJECT_ID);
   
   if (isClient) {
     // Client-side: must use NEXT_PUBLIC_ prefix
     const clientEnv = process.env.NEXT_PUBLIC_FIREBASE_ENV;
     if (!clientEnv) {
-      console.error('[BUILD_CONFIG] NEXT_PUBLIC_FIREBASE_ENV not set, falling back to NODE_ENV');
+      if (!isBuildTime) {
+        console.error('[BUILD_CONFIG] NEXT_PUBLIC_FIREBASE_ENV not set, falling back to NODE_ENV');
+      }
       return NODE_ENV;
     }
     return clientEnv;
@@ -30,7 +33,9 @@ export function getFirebaseEnvironment(): string {
     // Server-side: can use regular env vars
     const serverEnv = process.env.FIREBASE_ENV || process.env.NEXT_PUBLIC_FIREBASE_ENV;
     if (!serverEnv) {
-      console.error('[BUILD_CONFIG] FIREBASE_ENV not set, falling back to NODE_ENV');
+      if (!isBuildTime) {
+        console.error('[BUILD_CONFIG] FIREBASE_ENV not set, falling back to NODE_ENV');
+      }
       return NODE_ENV;
     }
     return serverEnv;

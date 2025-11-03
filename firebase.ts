@@ -41,7 +41,10 @@ if (hasValidConfig) {
     console.error('[FIREBASE] Error initializing Firebase:', error);
   }
 } else {
-  console.warn('[FIREBASE] Missing Firebase config values - Firebase client will not be initialized until config is available');
+  const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+  if (!isBuildTime) {
+    console.warn('[FIREBASE] Missing Firebase config values - Firebase client will not be initialized until config is available');
+  }
 }
 
 // Track emulator connection to prevent duplicate connections

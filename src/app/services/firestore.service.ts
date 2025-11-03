@@ -32,20 +32,31 @@ class FirestoreService {
     try {
       // Check if we're on the client side
       const isClient = typeof window !== 'undefined';
+      const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && !isClient && !process.env.FIREBASE_PROJECT_ID);
       
       // Only initialize if on client side
       if (isClient) {
         if (!app) {
-          console.error('[FIRESTORE_CLIENT] Firebase app is not initialized');
+          if (!isBuildTime) {
+            console.error('[FIRESTORE_CLIENT] Firebase app is not initialized');
+          }
           return;
         }
         this.db = getFirestore(app);
-        console.log('[FIRESTORE_CLIENT] Initialized with environment:', this.environment);
+        if (!isBuildTime) {
+          console.log('[FIRESTORE_CLIENT] Initialized with environment:', this.environment);
+        }
       } else {
-        console.warn('[FIRESTORE_CLIENT] Constructor called server-side. This service should only be used on the client side.');
+        // Only warn during runtime, not build time
+        if (!isBuildTime) {
+          console.warn('[FIRESTORE_CLIENT] Constructor called server-side. This service should only be used on the client side.');
+        }
       }
     } catch (error) {
-      console.error('[FIRESTORE_CLIENT] Error initializing Firestore:', error);
+      const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.FIREBASE_PROJECT_ID);
+      if (!isBuildTime) {
+        console.error('[FIRESTORE_CLIENT] Error initializing Firestore:', error);
+      }
     }
   }
 

@@ -35,16 +35,24 @@ export class FirebaseAdminService {
     try {
       const apps = getApps();
       const env = process.env.FIREBASE_ENV || process.env.NEXT_PUBLIC_FIREBASE_ENV || process.env.NODE_ENV || 'development';
-      console.log(`[FIREBASE_ADMIN] Starting initialization in environment: ${env}`);
+      const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.FIREBASE_PROJECT_ID;
+      
+      if (!isBuildTime) {
+        console.log(`[FIREBASE_ADMIN] Starting initialization in environment: ${env}`);
+      }
       
       if (apps.length > 0) {
-        console.log('[FIREBASE_ADMIN] Using existing Firebase Admin app');
+        if (!isBuildTime) {
+          console.log('[FIREBASE_ADMIN] Using existing Firebase Admin app');
+        }
         this.app = apps[0];
         this.isInitialized = true;
         return;
       }
 
-      console.log('[FIREBASE_ADMIN] Initializing new Firebase Admin app');
+      if (!isBuildTime) {
+        console.log('[FIREBASE_ADMIN] Initializing new Firebase Admin app');
+      }
       
       // Check for required environment variables
       const requiredVars = {
@@ -53,14 +61,16 @@ export class FirebaseAdminService {
         privateKey: process.env.FIREBASE_PRIVATE_KEY,
       };
 
-      // Log environment variables check (without sensitive data)
-      console.log('[FIREBASE_ADMIN] Environment variables check:', {
-        projectId: !!requiredVars.projectId,
-        clientEmail: !!requiredVars.clientEmail,
-        privateKey: !!requiredVars.privateKey,
-        privateKeyFormat: requiredVars.privateKey?.includes('-----BEGIN PRIVATE KEY-----') ? 'valid' : 'invalid',
-        storageBucket: !!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      });
+      // Only log environment check if not in build time
+      if (!isBuildTime) {
+        console.log('[FIREBASE_ADMIN] Environment variables check:', {
+          projectId: !!requiredVars.projectId,
+          clientEmail: !!requiredVars.clientEmail,
+          privateKey: !!requiredVars.privateKey,
+          privateKeyFormat: requiredVars.privateKey?.includes('-----BEGIN PRIVATE KEY-----') ? 'valid' : 'invalid',
+          storageBucket: !!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        });
+      }
 
       // Check if we're missing required variables
       const missingVars = Object.entries(requiredVars)
@@ -69,12 +79,17 @@ export class FirebaseAdminService {
 
       if (missingVars.length > 0) {
         const errorMsg = `Missing required Firebase Admin environment variables: ${missingVars.join(', ')}`;
-        console.error('[FIREBASE_ADMIN]', errorMsg);
+        // Only log errors if not in build time (to reduce build log noise)
+        if (!isBuildTime) {
+          console.error('[FIREBASE_ADMIN]', errorMsg);
+        }
         this.initializationError = errorMsg;
         
-        // In development, this is not necessarily fatal
-        if (env === 'development') {
-          console.warn('[FIREBASE_ADMIN] Firebase Admin not initialized - client-side fallback will be used');
+        // In development or build time, this is not necessarily fatal
+        if (env === 'development' || isBuildTime) {
+          if (!isBuildTime) {
+            console.warn('[FIREBASE_ADMIN] Firebase Admin not initialized - client-side fallback will be used');
+          }
           return;
         } else {
           throw new Error(errorMsg);

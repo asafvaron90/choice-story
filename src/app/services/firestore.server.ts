@@ -24,6 +24,7 @@ class FirestoreServerService {
   constructor() {
     // Get environment explicitly - must be set via FIREBASE_ENV or NEXT_PUBLIC_FIREBASE_ENV
     this.environment = getFirebaseEnvironment();
+    const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.FIREBASE_PROJECT_ID);
     
     try {
       if (!firebaseAdmin.isReady()) {
@@ -33,10 +34,15 @@ class FirestoreServerService {
 
       this.db = firebaseAdmin.getFirestore();
       this.isInitialized = true;
-      console.log('[FIRESTORE_SERVER] Initialized with environment:', this.environment);
+      if (!isBuildTime) {
+        console.log('[FIRESTORE_SERVER] Initialized with environment:', this.environment);
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[FIRESTORE_SERVER] Failed to initialize:', errorMsg);
+      // Only log errors during runtime, not build time
+      if (!isBuildTime) {
+        console.error('[FIRESTORE_SERVER] Failed to initialize:', errorMsg);
+      }
       this.isInitialized = false;
       this.initializationError = errorMsg;
     }

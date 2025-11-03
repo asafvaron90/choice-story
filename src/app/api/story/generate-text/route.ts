@@ -11,13 +11,18 @@ const openai = new OpenAI({
 
 // Initialize Gemini client
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-// Debug log for API key - showing only first few chars for security
-const keyPreview = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 3)}` : 'not set';
-console.log(`[GEMINI_API] Key status: ${apiKey ? 'present' : 'missing'}, Preview: ${keyPreview}, Length: ${apiKey.length}`);
+const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.FIREBASE_PROJECT_ID);
 
-// Check for missing API key
-if (!apiKey) {
-  console.error('[GEMINI_API] No API key found! Make sure NEXT_PUBLIC_GEMINI_API_KEY is set in your environment variables.');
+// Only log during runtime, not build time
+if (!isBuildTime) {
+  // Debug log for API key - showing only first few chars for security
+  const keyPreview = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 3)}` : 'not set';
+  console.log(`[GEMINI_API] Key status: ${apiKey ? 'present' : 'missing'}, Preview: ${keyPreview}, Length: ${apiKey.length}`);
+
+  // Check for missing API key
+  if (!apiKey) {
+    console.error('[GEMINI_API] No API key found! Make sure NEXT_PUBLIC_GEMINI_API_KEY is set in your environment variables.');
+  }
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
