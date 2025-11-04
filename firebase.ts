@@ -15,6 +15,25 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
+// Debug: Log config status (only in browser, not during build)
+if (typeof window !== 'undefined') {
+  const missingKeys = Object.entries(firebaseConfig)
+    .filter(([key, value]) => !value)
+    .map(([key]) => key);
+  
+  if (missingKeys.length > 0) {
+    console.warn('[FIREBASE] Missing config values:', missingKeys);
+    console.warn('[FIREBASE] Available env vars:', {
+      hasApiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      hasAuthDomain: !!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      hasStorageBucket: !!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      hasMessagingSenderId: !!process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      hasAppId: !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    });
+  }
+}
+
 // Initialize Firebase only if config is valid (prevents build-time errors)
 const hasValidConfig = firebaseConfig.apiKey && 
                        firebaseConfig.authDomain && 
