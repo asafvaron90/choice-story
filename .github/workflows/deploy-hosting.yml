@@ -97,13 +97,6 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         # Gemini API (for text generation)
         NEXT_PUBLIC_GEMINI_API_KEY: ${{ secrets.NEXT_PUBLIC_GEMINI_API_KEY }}
-        # Firebase Environment
-        FIREBASE_ENV: ${{ vars.FIREBASE_ENV || secrets.FIREBASE_ENV || 'production' }}
-        NEXT_PUBLIC_FIREBASE_ENV: ${{ vars.FIREBASE_ENV || secrets.FIREBASE_ENV || 'production' }}
-        # Firebase Admin SDK secrets (from repository secrets or environment secrets)
-        FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-        FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-        FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
       
     - name: Verify variables are embedded in build
       run: |
