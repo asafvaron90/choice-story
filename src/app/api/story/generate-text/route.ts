@@ -4,28 +4,35 @@ import { z } from 'zod';
 import { GenerateTextInputSchema } from './types';
 import OpenAI from 'openai';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Initialize Gemini client
-const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.FIREBASE_PROJECT_ID);
-
-// Only log during runtime, not build time
-if (!isBuildTime) {
-  // Debug log for API key - showing only first few chars for security
-  const keyPreview = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 3)}` : 'not set';
-  console.log(`[GEMINI_API] Key status: ${apiKey ? 'present' : 'missing'}, Preview: ${keyPreview}, Length: ${apiKey.length}`);
-
-  // Check for missing API key
-  if (!apiKey) {
-    console.error('[GEMINI_API] No API key found! Make sure NEXT_PUBLIC_GEMINI_API_KEY is set in your environment variables.');
+// Lazy initialization of OpenAI client to prevent build-time errors
+function getOpenAIClient(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY environment variable is not set');
   }
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 }
 
-const genAI = new GoogleGenerativeAI(apiKey);
+// Lazy initialization of Gemini client to prevent build-time errors
+function getGeminiClient(): GoogleGenerativeAI {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+  const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.FIREBASE_PROJECT_ID);
+
+  // Only log during runtime, not build time
+  if (!isBuildTime) {
+    // Debug log for API key - showing only first few chars for security
+    const keyPreview = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 3)}` : 'not set';
+    console.log(`[GEMINI_API] Key status: ${apiKey ? 'present' : 'missing'}, Preview: ${keyPreview}, Length: ${apiKey.length}`);
+
+    // Check for missing API key
+    if (!apiKey) {
+      console.error('[GEMINI_API] No API key found! Make sure NEXT_PUBLIC_GEMINI_API_KEY is set in your environment variables.');
+    }
+  }
+
+  return new GoogleGenerativeAI(apiKey);
+}
 
 // Helper function to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -38,6 +45,9 @@ async function generateTextWithRetry(prompt: string, maxTokens?: number, maxRetr
   // Try different models in case of model-specific errors
   const models = ["gemini-1.5-flash", "gemini-pro", "gemini-1.0-pro"];
   let currentModelIndex = 0;
+
+  // Get Gemini client lazily
+  const genAI = getGeminiClient();
 
   while (attempt < maxRetries) {
     try {
@@ -104,6 +114,7 @@ async function generateTextWithRetry(prompt: string, maxTokens?: number, maxRetr
 // Helper function to generate text with OpenAI
 async function generateTextWithOpenAI(prompt: string, maxTokens?: number): Promise<string> {
   try {
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
