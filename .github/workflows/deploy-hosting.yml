@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: production  # Use the GitHub Environment named 'production'
+    # Removed environment requirement - using repository secrets instead
     
     steps:
     - name: Checkout code
