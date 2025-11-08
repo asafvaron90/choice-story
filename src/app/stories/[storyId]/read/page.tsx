@@ -908,7 +908,6 @@ export default function StoryReaderPage() {
 
       const isPortrait = orientationMedia.matches;
       setOrientationBlocked(isPortrait);
-
       const screenOrientation = (window.screen as Screen & {
         orientation?: ScreenOrientation & { lock?: (orientation: string) => Promise<void> };
       }).orientation;
