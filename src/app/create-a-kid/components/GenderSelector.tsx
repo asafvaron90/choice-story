@@ -21,17 +21,16 @@ const _apiToDisplayMap: Record<string, string> = {
 };
 
 export default function GenderSelector({ values, onChange, initialValue }: GenderSelectorProps) {
-  const [selectedValue, setSelectedValue] = useState(initialValue || values[0]);
+  const [selectedValue, setSelectedValue] = useState(initialValue ?? "");
 
   useEffect(() => {
-    if (initialValue) {
-      setSelectedValue(initialValue);
-    }
+    setSelectedValue(initialValue ?? "");
   }, [initialValue]);
 
   const handleSelect = (value: string) => {
     setSelectedValue(value);
-    onChange(value === values[0] ? 'male' : 'female');
+    const apiGender = _genderValueMap[value] || _genderValueMap[_apiToDisplayMap[value]] || value;
+    onChange(apiGender);
   };
 
   return (

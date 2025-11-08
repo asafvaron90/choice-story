@@ -44,7 +44,7 @@ export default function CreateAKidPage() {
         names: [],
         name: '',
         age: 0,
-        gender: 'male',
+        gender: undefined as unknown as KidDetails["gender"],
         stories: [],
         createdAt: new Date(),
         lastUpdated: new Date()
