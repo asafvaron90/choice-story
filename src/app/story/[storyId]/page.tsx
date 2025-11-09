@@ -602,8 +602,8 @@ const EndOfStorySurvey = ({
         dir={isHebrewStory ? "rtl" : "ltr"}
       >
         {isHebrewStory
-          ? "?אז איזו דרך היית בוחר במצב הזה"
-          : "So which way would you choose in this situation?"}
+          ? "באיזה דרך הייתם בוחרים?"
+          : "Which path would you choose?"}
       </motion.h2>
 
       <p
@@ -612,7 +612,7 @@ const EndOfStorySurvey = ({
         dir={isHebrewStory ? "rtl" : "ltr"}
       >
         {isHebrewStory
-          ? "קראת את שני המסלולים - עכשיו ספר לנו איזה דרך היית בוחר באמת!"
+          ? "קראתם את שני המסלולים - עכשיו ספרו לנו איזה דרך הייתם בוחרים באמת!"
           : "You've read both paths - now tell us which one you would actually choose!"}
       </p>
 
@@ -861,7 +861,7 @@ const StoryReader = ({
   );
 
   return (
-    <div className="fixed inset-0 w-screen h-screen bg-purple-100 overflow-hidden flex flex-col items-center justify-center z-50">
+    <div className="fixed inset-0 w-screen h-screen bg-white overflow-hidden flex flex-col items-center justify-center z-50">
       {/* Book spread content or full-image content */}
       <div
         className={`flex-1 w-full flex flex-col items-center justify-center ${readerPaddingClass}`}
@@ -1120,7 +1120,7 @@ const StoryReader = ({
                 window.location.reload();
               }
             }}
-            className="p-2 px-4 bg-white/20 backdrop-blur-sm hover:bg-white text-purple-600 rounded-full shadow-sm transition-colors"
+            className="p-2 px-4 bg-white/20 backdrop-blur-sm break-keep opacity-60 hover:bg-white hover:opacity-100 text-purple-600 rounded-full shadow-sm transition-colors"
           >
             {isHebrew(story.title || story.problemDescription)
               ? "התחל מחדש"
