@@ -897,7 +897,7 @@ const StoryReader = ({
                   }
                 >
                   {isHebrew(story.title || story.problemDescription)
-                    ? "!תודה רבה 🎉"
+                    ? "תודה רבה 🎉"
                     : "Thank you! 🎉"}
                 </h2>
                 <p
@@ -912,9 +912,21 @@ const StoryReader = ({
                   }
                 >
                   {isHebrew(story.title || story.problemDescription)
-                    ? "!הבחירה שלך נשמרה"
+                    ? "הבחירה שלך נשמרה"
                     : "Your choice has been saved!"}
                 </p>
+
+                  <button
+                  onClick={() => window.location.reload()}
+                  className="mt-6 px-6 py-4 mx-8 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full shadow-lg text-xl transition-colors"
+                  style={{
+                    fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
+                  }}
+                >
+                  {isHebrew(story.title || story.problemDescription)
+                    ? "אני רוצה לקרוא שוב"
+                    : "I want to read again"}
+                </button>
               </div>
             </motion.div>
           ) : currentPage === 0 ? (
@@ -1170,9 +1182,18 @@ export default function StoryReaderPage() {
 
     const savedProgress = localStorage.getItem(`story-progress-${storyId}`);
     if (savedProgress) {
-      const { page, choice } = JSON.parse(savedProgress);
-      setCurrentPage(page);
-      setSelectedChoice(choice);
+      const { page, choice, timestamp } = JSON.parse(savedProgress);
+      const now = new Date().getTime();
+      const twentyMinutes = 20 * 60 * 1000;
+
+      if (now - timestamp < twentyMinutes) {
+        setCurrentPage(page);
+        setSelectedChoice(choice);
+      } else {
+        localStorage.removeItem(`story-progress-${storyId}`);
+        setCurrentPage(0);
+        setSelectedChoice(undefined);
+      }
     } else {
       setCurrentPage(0);
       setSelectedChoice(undefined);
@@ -1182,7 +1203,11 @@ export default function StoryReaderPage() {
   // Save progress to localStorage
   useEffect(() => {
     if (storyId && !loading) {
-      const progress = { page: currentPage, choice: selectedChoice };
+      const progress = {
+        page: currentPage,
+        choice: selectedChoice,
+        timestamp: new Date().getTime(),
+      };
       localStorage.setItem(
         `story-progress-${storyId}`,
         JSON.stringify(progress)

@@ -20,13 +20,13 @@ export const StoryImage = ({
   const imageUrl = (imageError || !url || url === "") ? fallbackUrl : url;
   
   return (
-    <div className="aspect-square rounded-md overflow-hidden relative">
+    <div className="aspect-video rounded-md overflow-hidden relative">
       <ImageUrl
         src={imageUrl}
         alt={alt}
         fill
         className="object-cover"
-        sizes="(max-width: 768px) 30vw, 100px"
+        // sizes="(max-width: 768px) 50vw, 150px"
         onError={() => setImageError(true)}
       />
     </div>

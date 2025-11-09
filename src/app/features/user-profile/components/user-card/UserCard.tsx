@@ -143,7 +143,7 @@ const AvatarDialog: FC<{
         {/* Image Section */}
         <div className="text-center">
           <div className="flex justify-center">
-            <div className="w-32 h-32 relative flex-shrink-0">
+            <div className="w-62 h-62 relative flex-shrink-0">
               <ImageUrl
                 src={avatarUrl}
                 alt={`${name}'s image`}
@@ -423,7 +423,7 @@ export const UserCard: React.FC<UserCardProps> = memo(({
       <div className="p-5">
         <div className="flex flex-col items-center mb-4">
           {/* Avatar with reanalyze button overlay */}
-          <div className="relative h-24 w-24 rounded-full overflow-hidden mb-3 bg-gray-100 group">
+          <div className="relative h-40 w-40 rounded-full overflow-hidden mb-3 bg-gray-100 group">
             <ImageUrl
               src={displayAvatarUrl}
               alt={kidName}
@@ -467,12 +467,13 @@ export const UserCard: React.FC<UserCardProps> = memo(({
             <Button
               size="sm"
               onClick={handleCreateStory}
-              className="rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 px-4"
+              className="w-full mb-4 ounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 px-4"
             >
               {t.userCard.createStory}
             </Button>
             
-            <QuickGenerateDialog 
+            
+            {/* <QuickGenerateDialog 
               kidDetails={kid}
               currentUser={currentUser!}
               onStoryCreated={() => {
@@ -481,7 +482,7 @@ export const UserCard: React.FC<UserCardProps> = memo(({
               }}
               isGenerating={isGenerating}
               onGeneratingChange={setIsGenerating}
-            />
+            /> */}
             
             <Button
               variant="outline"
@@ -522,15 +523,15 @@ export const UserCard: React.FC<UserCardProps> = memo(({
         </div>
         
         {isLoading ? (
-          <div className="grid grid-cols-3 gap-1 sm:gap-2">
+          <div className="grid grid-cols-2 gap-1 sm:gap-2">
             {[1, 2, 3].map((i) => (
               <div key={i} className="w-full">
-                <div className="aspect-square bg-gray-100 rounded-md animate-pulse"></div>
+                <div className="aspect-video bg-gray-100 rounded-md animate-pulse"></div>
               </div>
             ))}
           </div>
         ) : stories.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 min-w-36">
             {stories.map((story: Story) => (
               <div 
                 key={story.id}
@@ -568,7 +569,7 @@ export const UserCard: React.FC<UserCardProps> = memo(({
                 </div>
                 
                 {/* Story Image */}
-                <div className="aspect-square bg-gray-100 relative">
+                <div className="aspect-video bg-gray-100 relative">
                   <StoryImage
                     url={getImageUrl(story.pages?.[0]?.selectedImageUrl)}
                     alt={String(story.title)}
