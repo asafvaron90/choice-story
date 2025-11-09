@@ -177,8 +177,9 @@ const StoryPageComponent = ({
           </p>
         </div>
       </motion.div>
+
       {/* Show/Hide Text Button (top right, next to fullscreen) */}
-      <div className={`absolute top-4 ${toggleButtonPosition} z-20`}>
+      {/* <div className={`absolute top-4 ${toggleButtonPosition} z-20`}>
         <button
           onClick={onToggleOverlay}
           className="p-3 bg-white/80 backdrop-blur-sm hover:bg-white text-purple-600 rounded-full shadow-lg transition-colors mr-2"
@@ -197,7 +198,7 @@ const StoryPageComponent = ({
             </svg>
           )}
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };
