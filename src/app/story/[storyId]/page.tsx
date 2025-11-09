@@ -272,6 +272,7 @@ const ChoiceSelection = ({
   onSelectChoice: (choice: "good" | "bad") => void;
   screenCategory: ScreenCategory;
 }) => {
+  const isHebrewStory = isHebrew(goodChoice.storyText || badChoice.storyText);
   const [goodImageError, setGoodImageError] = useState(false);
   const [badImageError, setBadImageError] = useState(false);
   const [goodImageLoading, setGoodImageLoading] = useState(true);
@@ -356,7 +357,7 @@ const ChoiceSelection = ({
             style={{
               textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
               fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
-              textAlign: "right",
+              textAlign: isHebrewStory ? "right" : "left",
             }}
           >
             {goodChoice.storyText}
@@ -406,7 +407,7 @@ const ChoiceSelection = ({
             style={{
               textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
               fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
-              textAlign: "right",
+              textAlign: isHebrewStory ? "right" : "left",
             }}
           >
             {badChoice.storyText}
@@ -510,7 +511,7 @@ const StoryEnd = ({
                     ? "רוצה לראות מה היה קורה אם..."
                     : "What if..."}
                 </p>
-                <p
+                {/* <p
                   className={`${detailTextClass} text-purple-900 mb-4`}
                   style={{
                     fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
@@ -518,15 +519,16 @@ const StoryEnd = ({
                   dir={isHebrewStory ? "rtl" : "ltr"}
                 >
                   {otherChoice.storyText}
-                </p>
+                </p> */}
                 <button
                   onClick={onTryOtherPath}
-                  className={`px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white ${buttonTextClass} font-bold rounded-full shadow-lg transition-all`}
+                  className={`px-4 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white ${buttonTextClass} font-bold rounded-3xl shadow-lg transition-all`}
                   style={{
                     fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
                   }}
                 >
-                  {isHebrewStory ? "נסה את המסלול השני ←" : "Try Other Path →"}
+                  {otherChoice.storyText}
+                  {/* {isHebrewStory ? "נסה את המסלול השני ←" : "Try Other Path →"} */}
                 </button>
               </>
             ) : (
@@ -658,6 +660,7 @@ const EndOfStorySurvey = ({
             style={{
               textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
               fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
+              textAlign: isHebrewStory ? "right" : "left",
             }}
           >
             {goodChoice.storyText}
@@ -707,6 +710,7 @@ const EndOfStorySurvey = ({
             style={{
               textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
               fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
+              textAlign: isHebrewStory ? "right" : "left",
             }}
           >
             {badChoice.storyText}
