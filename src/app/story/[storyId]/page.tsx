@@ -39,7 +39,7 @@ const isHebrew = (text: string): boolean => {
 
 // Components
 const LoadingStory = () => (
-  <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-purple-50">
+  <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
     <motion.div
       className="mb-6"
       animate={{ rotateZ: [0, 360] }}
@@ -54,10 +54,10 @@ const LoadingStory = () => (
 );
 
 const ErrorMessage = ({ message }: { message: string }) => (
-  <div className="container h-screen flex items-center justify-center mx-auto px-4 py-8 bg-gradient-to-b from-blue-50 to-purple-50">
-    <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-xl w-full">
-      <h2 className="text-2xl font-bold text-red-700 mb-2">
-        Oops! Something went wrong
+  <div className="container h-screen flex items-center justify-center mx-auto px-4 py-8 bg-gray-50">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-xl w-full">
+        <h2 className="text-2xl font-bold text-red-700 mb-2">
+          Oops! Something went wrong
       </h2>
       <p className="text-red-700">{message}</p>
     </div>
@@ -178,7 +178,7 @@ const StoryPageComponent = ({
       {/* Full-page image background */}
       <div className="absolute inset-0 w-full h-full z-0">
         {imageLoading && (
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-100 to-blue-100 animate-pulse flex items-center justify-center">
+          <div className="absolute inset-0 bg-purple-100 animate-pulse flex items-center justify-center">
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -318,11 +318,11 @@ const ChoiceSelection = ({
           whileHover={{ opacity: 1 }}
           whileTap={{}}
           onClick={() => onSelectChoice("good")}
-          className="bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
+          className="bg-green-50 hover:bg-green-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
         >
           <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-6">
             {goodImageLoading && (
-              <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-emerald-100 animate-pulse flex items-center justify-center">
+              <div className="absolute inset-0 bg-green-100 animate-pulse flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -368,11 +368,11 @@ const ChoiceSelection = ({
           whileHover={{ opacity: 1 }}
           whileTap={{}}
           onClick={() => onSelectChoice("bad")}
-          className="bg-gradient-to-br from-red-50 to-rose-50 hover:from-red-100 hover:to-rose-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
+          className="bg-red-50 hover:bg-red-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
         >
           <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-6">
             {badImageLoading && (
-              <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-rose-100 animate-pulse flex items-center justify-center">
+              <div className="absolute inset-0 bg-red-100 animate-pulse flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -460,11 +460,11 @@ const StoryEnd = ({
   return (
     <div className="w-full h-full flex flex-col items-center justify-center">
       <div
-        className={`relative w-full max-w-5xl mx-auto flex ${containerDirection} rounded-3xl shadow-2xl bg-gradient-to-br from-yellow-50 to-purple-100 border-8 border-white`}
+        className={`relative w-full max-w-5xl mx-auto flex ${containerDirection} rounded-3xl shadow-2xl bg-yellow-50 border-8 border-white`}
         style={{ minHeight: "60vh" }}
       >
         {/* Left page: Illustration */}
-        <div className={imageSectionClasses}>
+        <div className={imageSectionClasses.replace('bg-gradient-to-br from-white/90 to-yellow-100', 'bg-white/90')}>
           <div className="relative w-full aspect-[4/3] flex items-center justify-center">
             <ImageUrl
               src={
@@ -481,7 +481,7 @@ const StoryEnd = ({
         {/* Book spine */}
         {screenCategory !== "small" && (
           <div
-            className="w-2 bg-gradient-to-b from-yellow-300 to-purple-200 shadow-inner rounded-full mx-1"
+            className="w-2 bg-yellow-300 shadow-inner rounded-full mx-1"
             style={{ minHeight: "70vh" }}
           />
         )}
@@ -621,11 +621,11 @@ const EndOfStorySurvey = ({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onSelectFinalChoice("good")}
-          className="bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
+          className="bg-green-50 hover:bg-green-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
         >
           <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-6">
             {goodImageLoading && (
-              <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-emerald-100 animate-pulse flex items-center justify-center">
+              <div className="absolute inset-0 bg-green-100 animate-pulse flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -671,11 +671,11 @@ const EndOfStorySurvey = ({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onSelectFinalChoice("bad")}
-          className="bg-gradient-to-br from-red-50 to-rose-50 hover:from-red-100 hover:to-rose-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
+          className="bg-red-50 hover:bg-red-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
         >
           <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-6">
             {badImageLoading && (
-              <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-rose-100 animate-pulse flex items-center justify-center">
+              <div className="absolute inset-0 bg-red-100 animate-pulse flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -861,7 +861,7 @@ const StoryReader = ({
   );
 
   return (
-    <div className="fixed inset-0 w-screen h-screen bg-gradient-to-b from-purple-100 to-yellow-100 overflow-hidden flex flex-col items-center justify-center z-50">
+    <div className="fixed inset-0 w-screen h-screen bg-purple-100 overflow-hidden flex flex-col items-center justify-center z-50">
       {/* Book spread content or full-image content */}
       <div
         className={`flex-1 w-full flex flex-col items-center justify-center ${readerPaddingClass}`}
@@ -1109,6 +1109,23 @@ const StoryReader = ({
         </>
       )}
       {/* Fullscreen button remains at top right */}
+      <div className="absolute top-4 left-4 z-20">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => {
+            if (story.id) {
+              localStorage.removeItem(`story-progress-${story.id}`);
+              window.location.reload();
+            }
+          }}
+          className="p-2 px-4 bg-white/20 backdrop-blur-sm hover:bg-white text-purple-600 rounded-full shadow-sm transition-colors"
+        >
+          {isHebrew(story.title || story.problemDescription)
+            ? "התחל מחדש"
+            : "Start New"}
+        </motion.button>
+      </div>
       <div className="absolute top-4 right-4 z-20">
         <motion.button
           whileHover={{ scale: 1.1 }}
@@ -1408,7 +1425,7 @@ export default function StoryReaderPage() {
   if (!story) return <ErrorMessage message="Story not found" />;
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-between items-center bg-gradient-to-b from-blue-50 to-purple-50 p-2 sm:p-4">
+    <div className="relative min-h-screen flex flex-col justify-between items-center bg-gray-50 p-2 sm:p-4">
       <div className="w-full flex flex-col flex-1 justify-between h-[90vh]">
         <StoryReader
           story={story}
@@ -1427,7 +1444,7 @@ export default function StoryReaderPage() {
       </div>
 
       {showOrientationOverlay && (
-        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-purple-900/90 via-indigo-900/90 to-purple-800/90 text-white text-center px-6">
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-purple-900/90 text-white text-center px-6">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
