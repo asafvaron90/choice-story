@@ -77,7 +77,7 @@ export default function StoryPageComponent() {
 
   // Handler for copying story link
   const handleCopyLink = async () => {
-    const shareUrl = `${window.location.origin}/stories/${storyId}/read`;
+    const shareUrl = `${window.location.origin}/story/${storyId}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
@@ -99,7 +99,7 @@ export default function StoryPageComponent() {
 
   // Handler for sharing story
   const handleShareStory = async () => {
-    const shareUrl = `${window.location.origin}/stories/${storyId}/read`;
+    const shareUrl = `${window.location.origin}/story/${storyId}`;
     
     if (navigator.share) {
       try {
@@ -206,7 +206,7 @@ export default function StoryPageComponent() {
         <p className="text-gray-600 max-w-2xl mx-auto mb-6">{story.problemDescription}</p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
-            onClick={() => router.push(`/stories/${storyId}/read`)}
+            onClick={() => router.push(`/story/${storyId}`)}
             className="px-6 py-2 rounded-md bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-md"
           >
             {t.story.readStory}

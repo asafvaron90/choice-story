@@ -86,7 +86,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ],
         type: 'website',
         siteName: 'Choice Story',
-        url: `${baseUrl}/stories/${storyId}/read`,
+        url: `${baseUrl}/story/${storyId}`,
       },
       twitter: {
         card: 'summary_large_image',
