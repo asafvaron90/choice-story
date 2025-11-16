@@ -40,7 +40,6 @@ export async function GET(req: NextRequest) {
 
         const { searchParams } = new URL(req.url);
         const email = searchParams.get('email');
-        
         span.setAttribute("request_email", email || "missing");
         
         if (!email) {
@@ -105,7 +104,8 @@ function normalizeAccountData(body: unknown): Account {
   const data = body as Record<string, unknown>;
   
   // Convert date strings to Date objects if they exist
-  const createAt = data.createAt 
+  console.log('Normalizing account data:', data);
+  const createAt = data.createAt
     ? (data.createAt instanceof Date ? data.createAt : new Date(data.createAt as string))
     : new Date();
   
@@ -181,12 +181,13 @@ export async function POST(req: NextRequest) {
         // Check authorization - only allow users to modify their own account
         console.log(`[/api/account] Authorization check: body.uid=${body.uid}, authenticatedUid=${authenticatedUid}, authorized=${isAuthorized(body.uid as string, authenticatedUid || null)}`);
         
-        // Temporary: Allow the request to proceed even if UIDs don't match, but log the mismatch
         if (!isAuthorized(body.uid as string, authenticatedUid || null)) {
-          console.log(`[/api/account] WARNING: UID mismatch - body.uid=${body.uid}, authenticatedUid=${authenticatedUid}`);
-          console.log(`[/api/account] Allowing request to proceed for debugging purposes`);
-          span.setAttribute("authorization_warning", "UID mismatch");
-          // TODO: Remove this temporary fix once the issue is resolved
+          span.setAttribute("error_type", "unauthorized");
+          return NextResponse.json({
+            success: false,
+            error: "Unauthorized",
+            message: "User is not authorized to modify this account"
+          }, { status: 401 });
         }
         
         console.log(`[/api/account] Received request to save account data for UID: ${body.uid}`);
@@ -194,6 +195,8 @@ export async function POST(req: NextRequest) {
         // Normalize account data (convert date strings to Date objects)
         const accountData = normalizeAccountData(requestBody);
         
+        console.log('[/api/account] Normalized account data:', accountData);
+
         // Check if account exists
         const existingAccount = await firestoreServerService.getAccountByUid(body.uid as string);
         
