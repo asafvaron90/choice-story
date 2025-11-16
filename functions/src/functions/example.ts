@@ -6,9 +6,8 @@ import { getDb } from "../lib/utils";
  * Example HTTP Cloud Function
  * You can call this from your Next.js app or directly via HTTP
  */
-export const helloWorld = functions.https.onRequest((request, response) => {
-  functions.logger.info("Hello logs!", { structuredData: true });
-  response.send("Hello from Firebase Cloud Functions!");
+export const healthCheck = functions.https.onRequest((request, response) => {
+  response.status(200).send("OK");
 });
 
 /**

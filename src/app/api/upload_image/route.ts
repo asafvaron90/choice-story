@@ -42,7 +42,7 @@ async function uploadWithDirectHTTP(
       'Cache-Control': 'public,max-age=31536000',
       'X-Goog-Meta-Source': 'choice-story-app',
     },
-    body: fileBuffer
+    body: new Uint8Array(fileBuffer)
   });
   
   if (!response.ok) {

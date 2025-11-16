@@ -59,7 +59,7 @@ export async function generateImageWithOpenAI(prompt: string, inputImageUrl?: st
         .toBuffer();
 
       // Create a Blob from the buffer
-      const blob = new Blob([resizedImageBuffer], { type: 'image/png' });
+      const blob = new Blob([new Uint8Array(resizedImageBuffer)], { type: 'image/png' });
       
       // Convert Blob to File
       const file = new File([blob], 'image.png', { type: 'image/png' });

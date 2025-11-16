@@ -4,4 +4,4 @@
  */
 
 // Firebase Auth User type
-export type FirebaseUser = import('@firebase/auth').User; 
+export type FirebaseUser = import('firebase/auth').User;
