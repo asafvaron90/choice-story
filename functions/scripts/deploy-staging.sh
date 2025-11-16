@@ -3,6 +3,43 @@
 
 # Don't use set -e since we want to continue deploying even if one function fails
 
+echo "🔧 Setting up environment variables..."
+
+# Get the script directory and project paths
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+FUNCTIONS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$FUNCTIONS_DIR/.." && pwd)"
+
+# Create functions/.env from environment variables or root .env files
+cd "$FUNCTIONS_DIR"
+
+# Check if OPENAI_API_KEY is already in environment (from GitHub Actions)
+if [ -n "$OPENAI_API_KEY" ]; then
+  echo "✅ Using OPENAI_API_KEY from environment variable"
+  echo "# Auto-generated from environment variables" > .env
+  echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> .env
+# Check if root .env.local exists
+elif [ -f "$PROJECT_ROOT/.env.local" ]; then
+  echo "✅ Copying OPENAI_API_KEY from root .env.local"
+  grep "^OPENAI_API_KEY=" "$PROJECT_ROOT/.env.local" > .env || echo "⚠️  OPENAI_API_KEY not found in .env.local"
+# Check if root .env.production exists
+elif [ -f "$PROJECT_ROOT/.env.production" ]; then
+  echo "✅ Copying OPENAI_API_KEY from root .env.production"
+  grep "^OPENAI_API_KEY=" "$PROJECT_ROOT/.env.production" > .env || echo "⚠️  OPENAI_API_KEY not found in .env.production"
+# Check if functions/.env already exists
+elif [ -f "$FUNCTIONS_DIR/.env" ]; then
+  echo "✅ Using existing functions/.env"
+else
+  echo "❌ No OPENAI_API_KEY found in environment or root .env files!"
+  echo "   Please set OPENAI_API_KEY environment variable or create root .env.local file"
+  exit 1
+fi
+
+echo "✅ Environment variables configured"
+echo ""
+
+cd "$FUNCTIONS_DIR"
+
 echo "🔍 Extracting dev- function names from generated-dev-functions.ts..."
 
 # Extract all dev- function names

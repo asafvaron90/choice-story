@@ -1,9 +1,9 @@
-name: Deploy to Production
+name: Deploy to Staging
 
 on:
   push:
     branches:
-      - production
+      - staging
 
 jobs:
   deploy:
@@ -44,7 +44,7 @@ jobs:
           npm run build
           cd ..
         env:
-          NODE_ENV: production
+          NODE_ENV: development
       
       - name: Setup Firebase CLI
         run: npm install -g firebase-tools
@@ -60,12 +60,15 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
       
-      - name: Deploy Firebase Functions (Production)
-        run: firebase deploy --only functions --token "$FIREBASE_TOKEN"
+      # Deploy staging functions (dev- prefixed)
+      - name: Deploy Firebase Functions (Staging - dev functions only)
+        run: |
+          cd functions
+          npm run deploy:staging-functions
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          NODE_ENV: production
+          NODE_ENV: development
       
       - name: Enable Firebase Web Frameworks experiment
         run: |
@@ -91,12 +94,12 @@ jobs:
             echo "⚠️  No Firebase config secrets found, skipping .env.production creation"
           fi
       
-      - name: Deploy to Production Hosting
+      - name: Deploy to Staging Hosting
         run: |
           firebase use choicestory-b3135 --token "$FIREBASE_TOKEN"
-          firebase target:apply hosting production choicestory-b3135 --token "$FIREBASE_TOKEN" || echo "⚠️  Target may already be configured"
-          firebase deploy --only hosting:production --token "$FIREBASE_TOKEN"
+          firebase target:apply hosting staging choicestory-b3135-staging --token "$FIREBASE_TOKEN" || echo "⚠️  Target may already be configured"
+          firebase deploy --only hosting:staging --token "$FIREBASE_TOKEN"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          NODE_ENV: production
+          NODE_ENV: development
 
