@@ -5,8 +5,11 @@
   "targets": {
     "choicestory-b3135": {
       "hosting": {
+        "production": [
+          "choicestory-b3135"
+        ],
         "staging": [
-          "choicestory-b3135-staging"
+          "choicestory-b3135-stage"
         ]
       }
     }
