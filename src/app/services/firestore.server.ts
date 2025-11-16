@@ -602,7 +602,10 @@ class FirestoreServerService {
         lastUpdated: now,
       };
       
-      await accountRef.set(accountDataWithTimestamps);
+      // Remove undefined values before saving (Firestore doesn't accept undefined)
+      const cleanAccountData = this.removeUndefinedValues(accountDataWithTimestamps);
+      
+      await accountRef.set(cleanAccountData);
       
       console.log('[FIRESTORE_SERVER] Successfully created account data for:', accountData.uid);
       return {  
@@ -614,6 +617,19 @@ class FirestoreServerService {
       console.error('[FIRESTORE_SERVER] Error creating account data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Helper function to remove undefined values from an object
+   */
+  private removeUndefinedValues<T extends Record<string, unknown>>(obj: T): Partial<T> {
+    const result: Partial<T> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key as keyof T] = value as T[keyof T];
+      }
+    }
+    return result;
   }
 
   /**
@@ -644,7 +660,10 @@ class FirestoreServerService {
       // Remove uid from update data (it's in the document path)
       const { uid: _, ...dataWithoutUid } = updateData;
       
-      await accountRef.update(dataWithoutUid);
+      // Remove undefined values before updating (Firestore doesn't accept undefined)
+      const cleanUpdateData = this.removeUndefinedValues(dataWithoutUid);
+      
+      await accountRef.update(cleanUpdateData);
       
       return {
         ...existingData,

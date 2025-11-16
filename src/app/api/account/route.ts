@@ -113,16 +113,29 @@ function normalizeAccountData(body: unknown): Account {
     ? (data.lastUpdated instanceof Date ? data.lastUpdated : new Date(data.lastUpdated as string))
     : new Date();
   
-  return {
+  // Build account object, only including defined values
+  const account: Account = {
     uid: data.uid as string,
     email: data.email as string,
-    displayName: data.displayName as string | undefined,
-    photoURL: data.photoURL as string | undefined,
-    phoneNumber: data.phoneNumber as string | undefined,
-    metadata: (data.metadata as Record<string, unknown>) || {},
     createAt,
     lastUpdated,
   };
+  
+  // Only add optional fields if they are defined
+  if (data.displayName !== undefined) {
+    account.displayName = data.displayName as string;
+  }
+  if (data.photoURL !== undefined) {
+    account.photoURL = data.photoURL as string;
+  }
+  if (data.phoneNumber !== undefined) {
+    account.phoneNumber = data.phoneNumber as string;
+  }
+  if (data.metadata !== undefined) {
+    account.metadata = (data.metadata as Record<string, unknown>) || {};
+  }
+  
+  return account;
 }
 
 /**
