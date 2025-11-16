@@ -81,7 +81,6 @@ export class AIStoryService {
               disadvantages: request.disadvantages || "",
               accountId: request.userId, // Using userId as accountId for now
               userId: request.userId,
-              environment: getFirebaseEnvironment(),
               storyId: storyId
             };
             
@@ -177,7 +176,6 @@ export class AIStoryService {
               imageUrl: request.kidDetails.avatarUrl || "", // Use kid's avatar as reference
               accountId: request.userId, // Using userId as accountId for now
               userId: request.userId,
-              environment: getFirebaseEnvironment(),
               storyId: '' // No story ID for standalone generation
             };
             
@@ -228,7 +226,7 @@ export class AIStoryService {
   /**
    * Generate an avatar image using Firebase Functions
    */
-  static async generateAvatarImage(kidDetails: KidDetails, userId: string, environment: string = 'development'): Promise<AIStoryImageResponse> {
+  static async generateAvatarImage(kidDetails: KidDetails, userId: string): Promise<AIStoryImageResponse> {
     return Sentry.startSpan(
       {
         op: "ai.story.generate_avatar",
@@ -237,6 +235,7 @@ export class AIStoryService {
       async (span) => {
         span.setAttribute("kid_id", kidDetails.id);
         span.setAttribute("user_id", userId);
+        const environment = process.env.NODE_ENV || 'production';
         span.setAttribute("environment", environment);
 
         try {
@@ -245,8 +244,7 @@ export class AIStoryService {
             const functionRequest = {
               imageUrl: kidDetails.avatarUrl || "", // Use kid's avatar as reference
               accountId: userId, // Using userId as accountId for now
-              userId: userId,
-              environment: environment
+              userId: userId
             };
             
             console.log("Calling Firebase generateKidAvatarImage with:", functionRequest);

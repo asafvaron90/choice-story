@@ -22,10 +22,41 @@
   "storage": {
     "rules": "storage.rules"
   },
-  "hosting": {
-    "site": "choicestory-b3135",
-    "source": ".",
-    "ignore": [
+  "hosting": [
+    {
+      "target": "staging",
+      "source": ".",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/README.md",
+        "**/LICENSE",
+        "**/.next/cache/**",
+        "**/coverage/**",
+        "**/test/**",
+        "**/__tests__/**",
+        "**/*.test.*",
+        "**/*.spec.*",
+        "**/jest.config.*",
+        "**/cypress/**",
+        "**/e2e/**",
+        "**/.env*",
+        "**/tsconfig.json",
+        "**/jsconfig.json",
+        "**/package-lock.json",
+        "**/yarn.lock",
+        "**/pnpm-lock.yaml"
+      ],
+      "frameworksBackend": {
+        "region": "us-central1"
+      }
+    },
+    {
+      "target": "production",
+      "source": ".",
+      "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
@@ -51,7 +82,8 @@
     "frameworksBackend": {
       "region": "us-central1"
     }
-  },
+    }
+  ],
   "emulators": {
     "functions": {
       "port": 5001

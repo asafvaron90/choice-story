@@ -2,10 +2,9 @@ import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import { generateImage } from "../image-generation";
 import { OPENAI_AGENTS } from "../open-ai-agents";
-import { getFirestoreHelper, saveImageToStorage } from "../lib/utils";
+import { getFirestoreHelper, saveImageToStorage, getEnvironment } from "../lib/utils";
 
 // HTTP VERSIONS (for direct fetch/axios calls)
-// ============================================================================
 
 /**
  * Generate Story Page Image (HTTP API)
@@ -55,12 +54,13 @@ export const generateStoryPageImageHttp = functions.runWith({
       // Verify token
       await admin.auth().verifyIdToken(token);
 
-      const { imagePrompt, imageUrl, accountId, userId, storyId, pageNum, updatePath, environment } = request.body;
+      const environment = getEnvironment();
+      const { imagePrompt, imageUrl, accountId, userId, storyId, pageNum, updatePath } = request.body;
 
-      if (!imagePrompt || !imageUrl || !accountId || !userId || !storyId || !environment) {
+      if (!imagePrompt || !imageUrl || !accountId || !userId || !storyId) {
         response.status(400).json({
           error: 'Missing required fields',
-          required: ['imagePrompt', 'imageUrl', 'accountId', 'userId', 'storyId', 'environment']
+          required: ['imagePrompt', 'imageUrl', 'accountId', 'userId', 'storyId']
         });
         return;
       }
@@ -182,119 +182,8 @@ export const generateStoryPageImageHttp = functions.runWith({
 );
 
 /**
- * Generate Kid Avatar Image (HTTP API)
- * Same as callable version but works with fetch/axios
- * 
- * POST /generateKidAvatarImageHttp
- * Headers: { "Authorization": "Bearer <firebase-token>" }
- * Body: {
- *   "imageUrl": "url_to_kid_photo",
- *   "accountId": "account_id",
- *   "userId": "user_id"
- * }
- */
-export const generateKidAvatarImageHttp = functions.runWith({
-  timeoutSeconds: 540,
-  memory: '2GB'
-}).https.onRequest(
-  async (request, response) => {
-    // CORS headers
-    response.set('Access-Control-Allow-Origin', '*');
-    
-    if (request.method === 'OPTIONS') {
-      response.set('Access-Control-Allow-Methods', 'POST');
-      response.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      response.status(204).send('');
-      return;
-    }
-
-    if (request.method !== 'POST') {
-      response.status(405).json({ error: 'Method not allowed' });
-      return;
-    }
-
-    try {
-      // Get Firebase token from Authorization header
-      const authHeader = request.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        response.status(401).json({ error: 'Unauthorized - No token provided' });
-        return;
-      }
-
-      const token = authHeader.split('Bearer ')[1];
-      
-      // Verify token
-      await admin.auth().verifyIdToken(token);
-
-      const { imageUrl, accountId, userId, environment } = request.body;
-
-      if (!imageUrl || !accountId || !userId || !environment) {
-        response.status(400).json({
-          error: 'Missing required fields',
-          required: ['imageUrl', 'accountId', 'userId', 'environment']
-        });
-        return;
-      }
-
-      // Generate the avatar image
-      const base64Image = await generateImage({
-        prompt: { id: OPENAI_AGENTS.KID_AVATAR_IMAGE },
-        input: [
-          {
-            role: "user",
-            content: [
-              { type: "input_text", text: "Create a Pixar-style avatar image for this child." },
-              { type: "input_image", image_url: imageUrl },
-            ],
-          },
-        ],
-      });
-
-      // Save to Firebase Storage
-      const storageUrl = await saveImageToStorage(
-        base64Image,
-        accountId,
-        userId,
-        '', // storyId not needed for avatar
-        'avatar'
-      );
-
-      // Update Firestore with avatar URL
-      // Kids are stored in users_{environment} collection with kidId as document ID
-      const dbHelper = getFirestoreHelper(environment);
-      await dbHelper.updateKid(userId, { // userId is actually the kidId in this context
-        avatarUrl: storageUrl,
-      });
-
-      response.status(200).json({
-        success: true,
-        imageUrl: storageUrl,
-      });
-    } catch (error) {
-      functions.logger.error("Error generating kid avatar image (HTTP):", error);
-      response.status(500).json({
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  }
-);
-
-/**
  * Generate Story Cover Image (HTTP API)
  * Same as callable version but works with fetch/axios
- * 
- * POST /generateStoryCoverImageHttp
- * Headers: { "Authorization": "Bearer <firebase-token>" }
- * Body: {
- *   "imageStyle": "3d Pixar",
- *   "imageUrl": "url_to_kid_photo",
- *   "storyTitle": "story title",
- *   "imagePrompt": "optional custom prompt",
- *   "accountId": "account_id",
- *   "userId": "user_id",
- *   "storyId": "story_id"
- * }
  */
 export const generateStoryCoverImageHttp = functions.runWith({
   timeoutSeconds: 540,
@@ -329,12 +218,13 @@ export const generateStoryCoverImageHttp = functions.runWith({
       // Verify token
       await admin.auth().verifyIdToken(token);
 
-      const { imageStyle, imageUrl, storyTitle, imagePrompt, accountId, userId, storyId, environment } = request.body;
+      const environment = getEnvironment();
+      const { imageStyle, imageUrl, storyTitle, imagePrompt, accountId, userId, storyId } = request.body;
 
-      if (!imageStyle || !imageUrl || !storyTitle || !accountId || !userId || !storyId || !environment) {
+      if (!imageStyle || !imageUrl || !storyTitle || !accountId || !userId || !storyId) {
         response.status(400).json({
           error: 'Missing required fields',
-          required: ['imageStyle', 'imageUrl', 'storyTitle', 'accountId', 'userId', 'storyId', 'environment']
+          required: ['imageStyle', 'imageUrl', 'storyTitle', 'accountId', 'userId', 'storyId']
         });
         return;
       }
@@ -425,17 +315,3 @@ export const generateStoryCoverImageHttp = functions.runWith({
   }
 );
 
-/**
- * Generate Full Story
- * Complete end-to-end story generation including title, text, save to Firestore, and images
- * 
- * Request body:
- * {
- *   "userId": "user_id",
- *   "kidId": "kid_id",
- *   "problemDescription": "problem description",
- *   "advantages": "advantages",
- *   "disadvantages": "disadvantages",
- *   "environment": "development" | "production"
- * }
- */

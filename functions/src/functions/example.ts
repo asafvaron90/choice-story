@@ -1,6 +1,6 @@
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
-import { getDb } from "../lib/utils";
+import { getDb, getEnvironment, getFirestoreHelper } from "../lib/utils";
 
 /**
  * Example HTTP Cloud Function
@@ -16,9 +16,7 @@ export const healthCheck = functions.https.onRequest((request, response) => {
  */
 export const debugEnvironment = functions.https.onRequest(async (request, response) => {
   try {
-    // Get environment from query params, default to production
-    const environment = (request.query.environment as string) || 'production';
-    const { getFirestoreHelper } = await import("../lib/utils");
+    const environment = getEnvironment();
     const dbHelper = getFirestoreHelper(environment);
     const storiesCollection = dbHelper.getStoriesCollection();
     

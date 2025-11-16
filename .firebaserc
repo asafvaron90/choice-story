@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "choicestory-b3135"
-  }
+  },
+  "targets": {
+    "choicestory-b3135": {
+      "hosting": {
+        "staging": [
+          "choicestory-b3135-staging"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

@@ -126,7 +126,6 @@ export const useStoryGeneration = ({
         advantages: newStory.advantages || "",
         disadvantages: newStory.disadvantages || "",
         accountId: currentUser.uid,
-        environment: getFirebaseEnvironment(),
         userId: currentUser.uid,
         storyId: storyId
       });

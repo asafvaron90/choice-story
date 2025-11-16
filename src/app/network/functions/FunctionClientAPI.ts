@@ -8,6 +8,26 @@ import { functions } from '../../../../firebase';
  */
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Get the function name based on NODE_ENV
+ * Returns dev{BaseName} if NODE_ENV is "development", otherwise returns baseName
+ */
+function getFunctionName(baseName: string): string {
+  // Check NODE_ENV - Next.js makes this available at build time
+  // For client-side code, NODE_ENV is embedded during build
+  const nodeEnv = process.env.NODE_ENV || (typeof window !== 'undefined' ? 'production' : 'development');
+  if (nodeEnv === 'development') {
+    // Convert to camelCase: generateStoryTitles -> devGenerateStoryTitles
+    const capitalizedBase = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+    return `dev${capitalizedBase}`;
+  }
+  return baseName;
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -21,7 +41,6 @@ export interface StoryPagesTextRequest {
   accountId: string;
   userId: string;
   storyId?: string; // Optional: not available when initially generating the story
-  environment: string; // Required for Firestore collection paths
 }
 
 export interface StoryPagesTextResponse {
@@ -84,7 +103,6 @@ export interface KidAvatarImageRequest {
   imageUrl: string;
   accountId: string;
   userId: string;
-  environment: string; // Required for Firestore collection paths
 }
 
 export interface KidAvatarImageResponse {
@@ -100,7 +118,6 @@ export interface StoryPageImageRequest {
   storyId: string;
   pageNum?: number;
   updatePath?: string; // Add updatePath parameter
-  environment: string; // Required for Firestore collection paths
 }
 
 export interface StoryPageImageResponse {
@@ -115,7 +132,6 @@ export interface StoryCoverImageRequest {
   accountId: string;
   userId: string;
   storyId: string;
-  environment: string; // Required for Firestore collection paths
 }
 
 export interface StoryCoverImageResponse {
@@ -164,7 +180,6 @@ export interface GenerateFullStoryRequest {
   problemDescription: string;
   advantages?: string;
   disadvantages?: string;
-  environment: 'development' | 'production';
 }
 
 export interface GenerateFullStoryResponse {
@@ -212,7 +227,7 @@ export class FunctionClientAPI {
       const generateStoryPagesText = httpsCallable<
         StoryPagesTextRequest,
         StoryPagesTextResponse
-      >(functionsInstance, 'generateStoryPagesText', {
+      >(functionsInstance, getFunctionName('generateStoryPagesText'), {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -235,7 +250,7 @@ export class FunctionClientAPI {
       const generateStoryImagePrompt = httpsCallable<
         StoryImagePromptRequest,
         StoryImagePromptResponse
-      >(functionsInstance, 'generateStoryImagePrompt', {
+      >(functionsInstance, getFunctionName('generateStoryImagePrompt'), {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -259,7 +274,7 @@ export class FunctionClientAPI {
       const generateStoryImagePrompt = httpsCallable<
         MultipleStoryImagePromptsRequest,
         MultipleStoryImagePromptsResponse
-      >(functionsInstance, 'generateStoryImagePrompt', {
+      >(functionsInstance, getFunctionName('generateStoryImagePrompt'), {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -282,7 +297,7 @@ export class FunctionClientAPI {
       const generateKidAvatarImage = httpsCallable<
         KidAvatarImageRequest,
         KidAvatarImageResponse
-      >(functionsInstance, 'generateKidAvatarImage', {
+      >(functionsInstance, getFunctionName('generateKidAvatarImage'), {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -305,7 +320,7 @@ export class FunctionClientAPI {
       const generateStoryPageImage = httpsCallable<
         StoryPageImageRequest,
         StoryPageImageResponse
-      >(functionsInstance, 'generateStoryPageImage', {
+      >(functionsInstance, getFunctionName('generateStoryPageImage'), {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -328,7 +343,7 @@ export class FunctionClientAPI {
       const generateStoryCoverImage = httpsCallable<
         StoryCoverImageRequest,
         StoryCoverImageResponse
-      >(functionsInstance, 'generateStoryCoverImage', {
+      >(functionsInstance, getFunctionName('generateStoryCoverImage'), {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -351,7 +366,7 @@ export class FunctionClientAPI {
       const generateStoryTitles = httpsCallable<
         StoryTitlesRequest,
         StoryTitlesResponse
-      >(functionsInstance, 'generateStoryTitles', {
+      >(functionsInstance, getFunctionName('generateStoryTitles'), {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -375,7 +390,7 @@ export class FunctionClientAPI {
       const generateImagePromptAndImage = httpsCallable<
         GenerateImagePromptAndImageRequest,
         GenerateImagePromptAndImageResponse
-      >(functionsInstance, 'generateImagePromptAndImage', {
+      >(functionsInstance, getFunctionName('generateImagePromptAndImage'), {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 
@@ -399,7 +414,7 @@ export class FunctionClientAPI {
       const generateFullStory = httpsCallable<
         GenerateFullStoryRequest,
         GenerateFullStoryResponse
-      >(functionsInstance, 'generateFullStory', {
+      >(functionsInstance, getFunctionName('generateFullStory'), {
         timeout: 540000 // 540 seconds (9 minutes) to match server timeout
       });
 

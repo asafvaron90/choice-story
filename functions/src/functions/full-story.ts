@@ -3,7 +3,7 @@ import * as admin from "firebase-admin";
 import { generateText } from "../text-generation";
 import { generateImage } from "../image-generation";
 import { OPENAI_AGENTS } from "../open-ai-agents";
-import { getFirestoreHelper, saveImageToStorage, getDb } from "../lib/utils";
+import { getFirestoreHelper, saveImageToStorage, getDb, getEnvironment } from "../lib/utils";
 
 // Import the helper function from story-text
 async function generateAndSaveStoryPagesText(params: {
@@ -16,7 +16,6 @@ async function generateAndSaveStoryPagesText(params: {
   accountId: string;
   userId: string;
   storyId?: string;
-  environment: string;
 }) {
   const { name, problemDescription, title, age, advantages, disadvantages } = params;
   const input = `Name: ${name}
@@ -46,13 +45,14 @@ export const generateFullStory = functions.runWith({
     }
 
     try {
-      const { userId, kidId, problemDescription, advantages, disadvantages, environment } = data;
+      const environment = getEnvironment();
+      const { userId, kidId, problemDescription, advantages, disadvantages } = data;
 
       // Validate required parameters
-      if (!userId || !kidId || !problemDescription || !environment) {
+      if (!userId || !kidId || !problemDescription) {
         throw new functions.https.HttpsError(
           "invalid-argument",
-          "userId, kidId, problemDescription, and environment are required"
+          "userId, kidId, and problemDescription are required"
         );
       }
 
@@ -175,7 +175,6 @@ Age: ${kidAge} years old${advantages ? `\nAdvantages: ${advantages}` : ''}${disa
         accountId: userId,
         userId: userId,
         storyId: storyId,
-        environment,
       });
 
       functions.logger.info("Story pages text generated successfully");
@@ -432,17 +431,3 @@ Age: ${kidAge} years old${advantages ? `\nAdvantages: ${advantages}` : ''}${disa
   }
 );
 
-/**
- * Generate Story Titles
- * Generates story titles using the new STORY_TITLES_TEXT agent
- * 
- * Request body:
- * {
- *   "name": "kid name",
- *   "gender": "male|female",
- *   "problemDescription": "problem description",
- *   "age": 8,
- *   "advantages": "optional advantages",
- *   "disadvantages": "optional disadvantages"
- * }
- */

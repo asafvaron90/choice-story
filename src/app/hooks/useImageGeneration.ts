@@ -100,7 +100,6 @@ export const useImageGeneration = ({
       userId,
       kidDetails,
       ...options,
-      environment
     });
 
     ongoingRequest.current = requestPromise;

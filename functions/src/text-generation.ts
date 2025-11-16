@@ -1,5 +1,3 @@
-import * as functions from 'firebase-functions/v1';
-
 /**
  * Text Generation Request Body
  */
@@ -20,9 +18,8 @@ export async function generateText(
   request: TextGenerationRequest
 ): Promise<string> {
   try {
-    // Get API key from Firebase Functions config
-    const apiKey = process.env.OPENAI_API_KEY || 
-                   (typeof functions !== 'undefined' ? functions.config().openai?.api_key : undefined);
+    // Get API key from environment variables
+    const apiKey = process.env.OPENAI_API_KEY;
     
     if (!apiKey) {
       throw new Error("OPENAI_API_KEY is not set");
