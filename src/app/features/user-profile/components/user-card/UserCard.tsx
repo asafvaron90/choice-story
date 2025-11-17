@@ -82,12 +82,10 @@ const AvatarDialog: FC<{
     setAvatarError(null);
     
     try {
-      const environment = getFirebaseEnvironment();
       const result = await ImageGenerationApi.generateAvatarImage(
         userId,
         kid,
-        imageAnalysis ? (typeof imageAnalysis === 'string' ? imageAnalysis : JSON.stringify(imageAnalysis)) : '',
-        environment
+        imageAnalysis ? (typeof imageAnalysis === 'string' ? imageAnalysis : JSON.stringify(imageAnalysis)) : ''
       );
       
       console.log("[AVATAR_GENERATION] Full response:", result);

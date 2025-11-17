@@ -1,6 +1,6 @@
 import * as functions from "firebase-functions/v1";
-import * as admin from "firebase-admin";
-import { getDb } from "../lib/utils";
+// import * as admin from "firebase-admin";
+import { getDb, getEnvironment, getFirestoreHelper } from "../lib/utils";
 
 /**
  * Example HTTP Cloud Function
@@ -16,9 +16,7 @@ export const healthCheck = functions.https.onRequest((request, response) => {
  */
 export const debugEnvironment = functions.https.onRequest(async (request, response) => {
   try {
-    // Get environment from query params, default to production
-    const environment = (request.query.environment as string) || 'production';
-    const { getFirestoreHelper } = await import("../lib/utils");
+    const environment = getEnvironment();
     const dbHelper = getFirestoreHelper(environment);
     const storiesCollection = dbHelper.getStoriesCollection();
     
@@ -67,55 +65,62 @@ export const debugEnvironment = functions.https.onRequest(async (request, respon
  * Example Callable Cloud Function
  * Can be called from your Next.js app using the Firebase SDK
  */
-export const addMessage = functions.https.onCall(async (data, context) => {
-  // Check if user is authenticated
-  if (!context?.auth) {
-    throw new functions.https.HttpsError(
-      "unauthenticated",
-      "User must be authenticated"
-    );
-  }
+// export const addMessage = functions.https.onCall(async (data, context) => {
+//   // Check if user is authenticated
+//   if (!context?.auth) {
+//     throw new functions.https.HttpsError(
+//       "unauthenticated",
+//       "User must be authenticated"
+//     );
+//   }
 
-  const { text } = data;
+//   const { text } = data;
 
-  // Add message to Firestore
-  const messageRef = await getDb().collection("messages").add({
-    text,
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    uid: context.auth.uid,
-  });
+//   // Add message to Firestore
+//   const messageRef = await getDb().collection("messages").add({
+//     text,
+//     timestamp: admin.firestore.FieldValue.serverTimestamp(),
+//     uid: context.auth.uid,
+//   });
 
-  return { id: messageRef.id };
-});
+//   return { id: messageRef.id };
+// });
 
 /**
  * Example Firestore Trigger
  * Automatically triggered when a document is created/updated/deleted
+ * 
+ * NOTE: Commented out because it uses a hardcoded "users/{userId}" path,
+ * but the actual collection structure is environment-specific (users_staging/users_production).
+ * Firestore triggers require fixed paths and cannot use dynamic collection names.
+ * 
+ * If you need this functionality, create separate functions for each environment
+ * or use a different approach (e.g., HTTP callable function triggered from API routes).
  */
-export const onUserCreate = functions.firestore
-  .document("users/{userId}")
-  .onCreate(async (snapshot, context) => {
-    const userData = snapshot.data();
-    functions.logger.info(`New user created: ${context.params.userId}`, userData);
-
-    // You can perform additional operations here
-    // For example, send a welcome email, create default data, etc.
-
-    return null;
-  });
+// export const onUserCreate = functions.firestore
+//   .document("users/{userId}")
+//   .onCreate(async (snapshot, context) => {
+//     const userData = snapshot.data();
+//     functions.logger.info(`New user created: ${context.params.userId}`, userData);
+//
+//     // You can perform additional operations here
+//     // For example, send a welcome email, create default data, etc.
+//
+//     return null;
+//   });
 
 /**
  * Example Scheduled Function (Cron Job)
  * Runs every day at midnight UTC
  */
-export const scheduledFunction = functions.pubsub
-  .schedule("every 24 hours")
-  .onRun(async (_context) => {
-    functions.logger.info("Running scheduled function");
+// export const scheduledFunction = functions.pubsub
+//   .schedule("every 24 hours")
+//   .onRun(async (_context) => {
+//     functions.logger.info("Running scheduled function");
 
-    // Your scheduled task logic here
-    // For example: cleanup old data, send reports, etc.
+//     // Your scheduled task logic here
+//     // For example: cleanup old data, send reports, etc.
 
-    return null;
-  });
+//     return null;
+//   });
 

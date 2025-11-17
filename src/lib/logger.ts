@@ -6,17 +6,19 @@ interface LogMessage {
   message: string;
   error?: unknown;
   context?: Record<string, unknown>;
+  rawBody?: string;
 }
 
 class Logger {
   private isDevelopment = (process.env.NODE_ENV || 'development') === 'development';
 
-  private formatMessage(level: LogLevel, { message, error, context }: LogMessage): string {
+  private formatMessage(level: LogLevel, { message, error, context, rawBody }: LogMessage): string {
     const timestamp = new Date().toISOString();
     const contextStr = context ? `\nContext: ${JSON.stringify(context, null, 2)}` : '';
     const errorStr = error ? `\nError: ${this.formatError(error)}` : '';
+    const rawBodyStr = rawBody ? `\nRaw Body: ${rawBody}` : '';
     
-    return `[${timestamp}] ${level.toUpperCase()}: ${message}${contextStr}${errorStr}`;
+    return `[${timestamp}] ${level.toUpperCase()}: ${message}${contextStr}${errorStr}${rawBodyStr}`;
   }
 
   private formatError(error: unknown): string {

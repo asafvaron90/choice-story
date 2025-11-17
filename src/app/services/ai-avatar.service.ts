@@ -59,8 +59,7 @@ export class AIAvatarService {
           // Generate avatar using the AI bot system
           const aiResponse = await AIStoryService.generateAvatarImage(
             request.kidDetails, 
-            request.userId,
-            request.environment || 'development'
+            request.userId
           );
 
           if (!aiResponse.success || !aiResponse.imageUrl) {
