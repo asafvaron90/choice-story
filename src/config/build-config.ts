@@ -20,23 +20,35 @@ export const IS_DEV: boolean = NODE_ENV === ENV_DEV;
  * @returns 'development' or 'production'
  */
 export function getFirebaseEnvironment(): 'development' | 'production' {
-  // 1. Check NODE_ENV (set at build time)
-  const env = NODE_ENV;
-  if (env === 'production') {
+  // Prioritize FIREBASE_ENV if it's explicitly set
+  const firebaseEnv = process.env.FIREBASE_ENV || process.env.NEXT_PUBLIC_FIREBASE_ENV;
+  if (firebaseEnv === 'production') {
     return 'production';
   }
-  
-  // 2. For client-side code, check if we're on a production domain
-  // This is a fallback in case NODE_ENV wasn't set correctly during build
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    // If not localhost or 127.0.0.1, assume production
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.includes('.local')) {
-      return 'production';
-    }
+  if (firebaseEnv === 'development') {
+    return 'development';
   }
-  
-  // 3. Default to development
+
+  // Fallback to NODE_ENV (set at build time)
+  if (process.env.NODE_ENV === 'production') {
+    // For client-side, check hostname to differentiate staging/prod from local
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      // Staging domain should use development environment
+      if (hostname.includes('staging')) {
+        return 'development';
+      }
+      // Production domains
+      if (hostname === 'choice-story.com' || hostname === 'www.choice-story.com') {
+        return 'production';
+      }
+    }
+    // For server-side, if FIREBASE_ENV is not set, default to development
+    // This prevents accidentally using production data in staging or other environments
+    return 'development';
+  }
+
+  // Default to development for any other case (e.g., NODE_ENV is 'development')
   return 'development';
 }
 
