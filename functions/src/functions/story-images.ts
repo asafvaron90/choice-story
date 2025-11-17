@@ -2,7 +2,7 @@ import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import { generateImage } from "../image-generation";
 import { OPENAI_AGENTS } from "../open-ai-agents";
-import { getFirestoreHelper, saveImageToStorage } from "../lib/utils";
+import { getFirestoreHelper, saveImageToStorage, getEnvironment } from "../lib/utils";
 
 /**
  * Generate Kid Avatar Image
@@ -28,12 +28,13 @@ export const generateKidAvatarImage = functions.runWith({
     }
 
     try {
-      const { imageUrl, accountId, userId, environment } = data;
+      const environment = getEnvironment();
+      const { imageUrl, accountId, userId } = data;
 
-      if (!imageUrl || !accountId || !userId || !environment) {
+      if (!imageUrl || !accountId || !userId) {
         throw new functions.https.HttpsError(
           "invalid-argument",
-          "imageUrl, accountId, userId, and environment are required"
+          "imageUrl, accountId, and userId are required"
         );
       }
 
@@ -108,8 +109,9 @@ export const generateStoryPageImage = functions.runWith({
     }
 
     try {
+      const environment = getEnvironment();
       // FIXME: pageNum is undefined. currenlty extracted from updatePath - not sure we need it. pages is array so we need to update the index (zero-based)
-      const { imagePrompt, imageUrl, accountId, userId, storyId, pageNum, updatePath, environment } = data;
+      const { imagePrompt, imageUrl, accountId, userId, storyId, pageNum, updatePath } = data;
 
       console.log("Firebase function received data:", {
         storyId,
@@ -121,10 +123,10 @@ export const generateStoryPageImage = functions.runWith({
         environment
       });
 
-      if (!imagePrompt || !imageUrl || !accountId || !userId || !storyId || !environment) {
+      if (!imagePrompt || !imageUrl || !accountId || !userId || !storyId) {
         throw new functions.https.HttpsError(
           "invalid-argument",
-          "imagePrompt, imageUrl, accountId, userId, storyId, and environment are required"
+          "imagePrompt, imageUrl, accountId, userId, and storyId are required"
         );
       }
 
@@ -271,12 +273,13 @@ export const generateStoryCoverImage = functions.runWith({
     }
 
     try {
-      const { imageStyle, imageUrl, storyTitle, imagePrompt, accountId, userId, storyId, environment } = data;
+      const environment = getEnvironment();
+      const { imageStyle, imageUrl, storyTitle, imagePrompt, accountId, userId, storyId } = data;
 
-      if (!imageStyle || !imageUrl || !storyTitle || !accountId || !userId || !storyId || !environment) {
+      if (!imageStyle || !imageUrl || !storyTitle || !accountId || !userId || !storyId) {
         throw new functions.https.HttpsError(
           "invalid-argument",
-          "imageStyle, imageUrl, storyTitle, accountId, userId, storyId, and environment are required"
+          "imageStyle, imageUrl, storyTitle, accountId, userId, and storyId are required"
         );
       }
 
@@ -362,4 +365,3 @@ export const generateStoryCoverImage = functions.runWith({
     }
   }
 );
-

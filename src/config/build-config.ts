@@ -42,8 +42,8 @@ export function getFirebaseEnvironment(): 'development' | 'production' {
 
 // Base URLs configuration
 export const BASE_DOMAIN_LOCAL: string = process.env.NEXT_PUBLIC_BASE_URL_LOCAL || 'http://localhost:3000';
-export const BASE_DOMAIN_PROD: string = process.env.NEXT_PUBLIC_BASE_URL_PROD || 'https://your-production-domain.com';
-export const BASE_DOMAIN_PROD_2: string = process.env.NEXT_PUBLIC_BASE_URL_PROD_2 || 'https://your-production-domain-2.com';
+export const BASE_DOMAIN_PROD: string = process.env.NEXT_PUBLIC_BASE_URL_PROD || 'https://choice-story.com';
+export const BASE_DOMAIN_PROD_2: string = process.env.NEXT_PUBLIC_BASE_URL_PROD_2 || 'https://staging.choice-story.com';
 
 export const BASE_URL: string = IS_PROD ? BASE_DOMAIN_PROD : BASE_DOMAIN_LOCAL;
 

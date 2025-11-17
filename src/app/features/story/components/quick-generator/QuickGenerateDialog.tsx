@@ -103,17 +103,13 @@ export const QuickGenerateDialog: FC<QuickGenerateDialogProps> = ({
         disadvantages: formattedDisadvantages
       });
 
-      // Get environment explicitly
-      const environment = getFirebaseEnvironment() as 'development' | 'production';
-
       // Call the Firebase function to generate the story
       const result = await functionClientAPI.generateFullStory({
         userId: currentUser.uid,
         kidId: kidDetails.id,
         problemDescription: problem,
         advantages: formattedAdvantages || undefined,
-        disadvantages: formattedDisadvantages || undefined,
-        environment
+        disadvantages: formattedDisadvantages || undefined
       });
 
       console.log("[QuickGenerateDialog] Story generated successfully:", result);

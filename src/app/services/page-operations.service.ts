@@ -54,7 +54,6 @@ export class PageOperationsService {
       userId,
       kid,
       page.imagePrompt || `Generate image for ${page.pageType} page`,
-      environment
     );
     
     // Check if the API call was successful

@@ -166,7 +166,6 @@ export function useStoryGeneration() {
         disadvantages: disadvantages || "",
         accountId: userId, // Using userId as accountId
         userId: userId,
-        environment: getFirebaseEnvironment(),
         storyId
       });
 

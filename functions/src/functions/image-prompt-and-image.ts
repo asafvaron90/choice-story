@@ -3,7 +3,7 @@ import * as admin from "firebase-admin";
 import { generateText } from "../text-generation";
 import { generateImage } from "../image-generation";
 import { OPENAI_AGENTS } from "../open-ai-agents";
-import { getFirestoreHelper, saveImageToStorage } from "../lib/utils";
+import { getFirestoreHelper, saveImageToStorage, getEnvironment } from "../lib/utils";
 
 // ============================================================================
 // RETRY AND FALLBACK HELPERS
@@ -202,6 +202,7 @@ export const generateImagePromptAndImage = functions.runWith({
     }
 
     try {
+      const environment = getEnvironment();
       const { 
         pageText, 
         pageNum, 
@@ -211,8 +212,7 @@ export const generateImagePromptAndImage = functions.runWith({
         accountId, 
         userId, 
         storyId, 
-        updatePath,
-        environment
+        updatePath
       } = data;
 
       // Validate required parameters for image prompt generation
@@ -224,10 +224,10 @@ export const generateImagePromptAndImage = functions.runWith({
       }
 
       // Validate required parameters for image generation
-      if (!imageUrl || !accountId || !userId || !storyId || !environment) {
+      if (!imageUrl || !accountId || !userId || !storyId) {
         throw new functions.https.HttpsError(
           "invalid-argument",
-          "imageUrl, accountId, userId, storyId, and environment are required"
+          "imageUrl, accountId, userId, and storyId are required"
         );
       }
 
@@ -435,4 +435,3 @@ export const generateImagePromptAndImage = functions.runWith({
     }
   }
 );
-

@@ -1,5 +1,9 @@
+import { firebaseAdmin } from '@/app/services/firebase-admin.service';
 import { getAuth } from 'firebase-admin/auth';
 import { getApps } from 'firebase-admin/app';
+
+// Ensure Firebase Admin is initialized
+firebaseAdmin.isReady();
 
 /**
  * Verify a Firebase ID token from a client

@@ -143,12 +143,10 @@ export default function StoryTestPage() {
 
     setIsGeneratingAvatar(true);
     try {
-      const environment = getFirebaseEnvironment();
       const result = await ImageGenerationApi.generateAvatarImage(
         currentUser.uid,
         selectedKid,
-        selectedKid.imageAnalysis,
-        environment
+        selectedKid.imageAnalysis
       );
 
       if (result.success && result.data) {
@@ -332,13 +330,11 @@ export default function StoryTestPage() {
 
     setIsGeneratingImage(true);
     try {
-      const environment = getFirebaseEnvironment();
       const result = await ImageGenerationApi.generateImage({
         userId: currentUser.uid,
         kidDetails: selectedKid,
         prompt: customImagePrompt,
-        outputCount: 1,
-        environment
+        outputCount: 1
       });
 
       if (result.success && result.data && result.data.length > 0) {

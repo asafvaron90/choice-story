@@ -62,7 +62,12 @@ const nextConfig: NextConfig = {
       // Allow all subdomains of appspot.com
       {
         protocol: 'https',
-        hostname: 'choicestory-b3135.appspot.com',
+        hostname: 'choice-story.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'staging.choice-story.com',
         pathname: '/**',
       },
     ],
@@ -71,7 +76,8 @@ const nextConfig: NextConfig = {
       'firebasestorage.googleapis.com',
       'storage.googleapis.com',
       'replicate.delivery',
-      'choicestory-b3135.appspot.com',
+      'choice-story.com',
+      'staging.choice-story.com',
     ],
     // Disable image optimization for external URLs if needed
     unoptimized: false,

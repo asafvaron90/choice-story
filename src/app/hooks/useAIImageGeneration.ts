@@ -119,8 +119,7 @@ export const useAIImageGeneration = ({
         storyId,
         pageText,
         pageNum,
-        updatePath: options.updatePath,
-        environment
+        updatePath: options.updatePath
       });
     } else {
       // Use the traditional method with separate prompt generation
@@ -129,7 +128,6 @@ export const useAIImageGeneration = ({
         userId,
         kidDetails,
         ...options,
-        environment
       });
     }
 

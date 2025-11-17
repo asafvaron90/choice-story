@@ -3,3 +3,11 @@ node_modules/
 *.log
 .DS_Store
 
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Generated dev- functions
+src/functions/generated-dev-functions.ts
+

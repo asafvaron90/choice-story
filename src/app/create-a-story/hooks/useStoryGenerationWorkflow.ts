@@ -252,9 +252,6 @@ export function useStoryGenerationWorkflow({
           level: "info"
         });
 
-        // Get the environment explicitly
-        const environment = getFirebaseEnvironment();
-        
         // Note: storyId is optional and not needed when initially generating the story
         console.log("Calling Firebase generateStoryPagesText with:", {
           name: kidDetails.name || 'Child',
@@ -264,8 +261,7 @@ export function useStoryGenerationWorkflow({
           advantages: advantages || "",
           disadvantages: disadvantages || "",
           accountId: currentUser?.uid || "",
-          userId: currentUser?.uid || "",
-          environment
+          userId: currentUser?.uid || ""
         });
 
         const response = await functionClientAPI.generateStoryPagesText({
@@ -276,8 +272,7 @@ export function useStoryGenerationWorkflow({
           advantages: advantages || "",
           disadvantages: disadvantages || "",
           accountId: currentUser?.uid || "", // Using userId as accountId
-          userId: currentUser?.uid || "",
-          environment
+          userId: currentUser?.uid || ""
         });
 
         if (!response.success || !response.text) {
