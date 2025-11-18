@@ -191,6 +191,7 @@ export class FirebaseAdminService {
     }
     if (!this.auth) {
       console.log('[FIREBASE_ADMIN] Creating new Auth instance');
+      // Pass the app instance to getAuth to ensure it uses the correct app
       this.auth = getAuth(this.app);
     }
     return this.auth;
@@ -208,6 +209,22 @@ export class FirebaseAdminService {
    */
   public getInitializationError() {
     return this.initializationError;
+  }
+
+  /**
+   * Get the underlying Firebase Admin App instance
+   * Useful for debugging and verification
+   */
+  public getApp() {
+    return this.app;
+  }
+
+  /**
+   * Force re-initialization if needed (use with caution)
+   */
+  public forceInitialize() {
+    console.log('[FIREBASE_ADMIN] Force re-initialization requested');
+    this.initialize();
   }
 }
 
