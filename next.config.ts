@@ -16,9 +16,7 @@ if (process.env.NODE_ENV === 'production' || process.env.CI) {
 }
 
 const nextConfig: NextConfig = {
-  // Enable instrumentation hook for server-side initialization
   experimental: {
-    instrumentationHook: true,
     serverActions: {
       allowedOrigins: ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS : ['http://localhost:3000'],
     }
