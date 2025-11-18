@@ -3,6 +3,7 @@ import firestoreServerService from '@/app/services/firestore.server';
 import { Account } from '@/models';
 import { verifyAuthHeader } from '@/app/utils/auth-helpers';
 import * as Sentry from '@sentry/nextjs';
+import { logger } from '@/lib/logger';
 
 /**
  * Helper function to check if the authenticated user is authorized to modify the account
@@ -15,6 +16,7 @@ function isAuthorized(accountUid: string, authenticatedUid: string | null): bool
  * GET endpoint to get account by email
  */
 export async function GET(req: NextRequest) {
+  logger.info({ message: 'GET /api/account called' });
   return Sentry.startSpan(
     {
       op: "http.server",
@@ -74,6 +76,7 @@ export async function GET(req: NextRequest) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         
+        logger.error({ message: 'Error in GET /api/account', error });
         console.error('[/api/account] Error in GET:', error);
         
         span.setAttribute("error_type", "exception");
@@ -142,6 +145,7 @@ function normalizeAccountData(body: unknown): Account {
  * POST endpoint to create or update an account
  */
 export async function POST(req: NextRequest) {
+  logger.info({ message: 'POST /api/account called' });
   return Sentry.startSpan(
     {
       op: "http.server",
@@ -159,7 +163,17 @@ export async function POST(req: NextRequest) {
         const authenticatedUid = decodedToken?.uid;
         console.log(`[/api/account] POST - Token verified: ${!!decodedToken}, authenticatedUid: ${authenticatedUid || 'none'}`);
         
-        requestBody = await req.json();
+        try {
+          requestBody = await req.json();
+        } catch (error) {
+          logger.error({ message: 'Error parsing request body', error });
+          return NextResponse.json({
+            success: false,
+            error: 'Invalid request body',
+            message: 'The request body could not be parsed as JSON.'
+          }, { status: 400 });
+        }
+        
         const body = requestBody as Record<string, unknown>;
         console.log(`[/api/account] POST - Request body UID: ${body.uid}, email: ${body.email}`);
         
@@ -231,6 +245,7 @@ export async function POST(req: NextRequest) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         const errorStack = error instanceof Error ? error.stack : undefined;
         
+        logger.error({ message: 'Error in POST /api/account', error, context: { requestBody } });
         console.error('[/api/account] Error in POST:', error);
         console.error('[/api/account] Error details:', {
           message: errorMessage,

@@ -11,14 +11,32 @@ interface LogMessage {
 
 class Logger {
   private isDevelopment = (process.env.NODE_ENV || 'development') === 'development';
+  private env: string = 'unknown';
+  private accountId?: string;
+  private userId?: string;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.env = process.env.NEXT_PUBLIC_FIREBASE_ENV || 'development';
+    }
+  }
+
+  setUser(accountId?: string, userId?: string) {
+    this.accountId = accountId;
+    this.userId = userId;
+  }
 
   private formatMessage(level: LogLevel, { message, error, context, rawBody }: LogMessage): string {
     const timestamp = new Date().toISOString();
+    
+    const envInfo = `[Env: ${this.env}]`;
+    const userInfo = this.accountId ? `[AccountId: ${this.accountId}, UserId: ${this.userId}]` : '';
+    
     const contextStr = context ? `\nContext: ${JSON.stringify(context, null, 2)}` : '';
     const errorStr = error ? `\nError: ${this.formatError(error)}` : '';
     const rawBodyStr = rawBody ? `\nRaw Body: ${rawBody}` : '';
     
-    return `[${timestamp}] ${level.toUpperCase()}: ${message}${contextStr}${errorStr}${rawBodyStr}`;
+    return `[${timestamp}] ${envInfo}${userInfo} ${level.toUpperCase()}: ${message}${contextStr}${errorStr}${rawBodyStr}`;
   }
 
   private formatError(error: unknown): string {
