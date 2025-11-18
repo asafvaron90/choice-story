@@ -2,7 +2,7 @@ import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import { generateText } from "../text-generation";
 import { OPENAI_AGENTS } from "../open-ai-agents";
-import { getFirestoreHelper } from "../lib/utils";
+import { getFirestoreHelper, getEnvironment } from "../lib/utils";
 
 interface StoryPagesTextParams {
   name: string;
@@ -14,7 +14,6 @@ interface StoryPagesTextParams {
   accountId: string;
   userId: string;
   storyId?: string; // Optional: not available when initially generating the story
-  environment: string;
 }
 
 /**
@@ -22,7 +21,7 @@ interface StoryPagesTextParams {
  * The client will save the complete story after processing
  */
 async function generateAndSaveStoryPagesText(params: StoryPagesTextParams) {
-  const { name, problemDescription, title, age, advantages, disadvantages, accountId: _accountId, userId: _userId, storyId, environment: _environment } = params;
+  const { name, problemDescription, title, age, advantages, disadvantages, accountId: _accountId, userId: _userId, storyId } = params;
 
   // Generate the story text
   const input = `Name: ${name}
@@ -76,12 +75,12 @@ export const generateStoryPagesText = functions.https.onCall(
     }
 
     try {
-      const { name, problemDescription, title, age, advantages, disadvantages, accountId, userId, storyId, environment } = data;
+      const { name, problemDescription, title, age, advantages, disadvantages, accountId, userId, storyId } = data;
 
-      if (!name || !problemDescription || !title || !age || !advantages || !disadvantages || !accountId || !userId || !environment) {
+      if (!name || !problemDescription || !title || !age || !advantages || !disadvantages || !accountId || !userId) {
         throw new functions.https.HttpsError(
           "invalid-argument",
-          "All fields are required: name, problemDescription, title, age, advantages, disadvantages, accountId, userId, environment. storyId is optional."
+          "All fields are required: name, problemDescription, title, age, advantages, disadvantages, accountId, userId. storyId is optional."
         );
       }
 
@@ -95,7 +94,6 @@ export const generateStoryPagesText = functions.https.onCall(
         accountId,
         userId,
         storyId,
-        environment,
       });
 
       return result;
@@ -153,12 +151,12 @@ export const generateStoryPagesTextHttp = functions.https.onRequest(
       // Verify token
       await admin.auth().verifyIdToken(token);
 
-      const { name, problemDescription, title, age, advantages, disadvantages, accountId, userId, storyId, environment } = request.body;
+      const { name, problemDescription, title, age, advantages, disadvantages, accountId, userId, storyId } = request.body;
 
-      if (!name || !problemDescription || !title || !age || !advantages || !disadvantages || !accountId || !userId || !environment) {
+      if (!name || !problemDescription || !title || !age || !advantages || !disadvantages || !accountId || !userId) {
         response.status(400).json({
           error: 'Missing required fields',
-          required: ['name', 'problemDescription', 'title', 'age', 'advantages', 'disadvantages', 'accountId', 'userId', 'environment'],
+          required: ['name', 'problemDescription', 'title', 'age', 'advantages', 'disadvantages', 'accountId', 'userId'],
           optional: ['storyId']
         });
         return;
@@ -174,7 +172,6 @@ export const generateStoryPagesTextHttp = functions.https.onRequest(
         accountId,
         userId,
         storyId,
-        environment,
       });
 
       response.status(200).json(result);
@@ -228,7 +225,8 @@ export const generateStoryImagePrompt = functions.https.onCall(
     }
 
     try {
-      const { pageText, pageNum: _pageNum, pages, gender, age, accountId: _accountId, userId: _userId, storyId, updatePath, environment } = data;
+      const environment = getEnvironment();
+      const { pageText, pageNum: _pageNum, pages, gender, age, accountId: _accountId, userId: _userId, storyId, updatePath } = data;
 
       // Handle multiple pages case
       if (pages && Array.isArray(pages) && pages.length > 0) {
@@ -461,13 +459,6 @@ export const generateStoryImagePrompt = functions.https.onCall(
 
       // Save the generated prompt to Firestore if parameters are provided
       if (storyId && updatePath) {
-        if (!environment) {
-          throw new functions.https.HttpsError(
-            "invalid-argument",
-            "environment is required when storyId and updatePath are provided"
-          );
-        }
-
         functions.logger.info("Saving generated prompt to Firestore", {
           storyId,
           updatePath,

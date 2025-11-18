@@ -1,6 +1,6 @@
 {
   "name": "choice-story-web",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "engines": {
     "node": "22"
@@ -17,9 +17,12 @@
     "prod:build": "next build",
     "prod:start": "next start",
     "prod": "npm run prod:build && npm run prod:start",
-    "deploy:prod": "firebase use choicestory-b3135 && npm run build && firebase deploy",
-    "deploy:prod:hosting": "firebase use choicestory-b3135 && npm run build && firebase deploy --only hosting",
-    "deploy:prod:functions": "firebase use choicestory-b3135 && cd functions && npm run build && cd .. && firebase deploy --only functions",
+    "deploy:prod": "firebase use choicestory-b3135 && npm run build && npm run deploy:prod:functions && firebase deploy --only hosting:production",
+    "deploy:prod:hosting": "bash scripts/deploy-production-hosting.sh",
+    "deploy:prod:functions": "firebase use choicestory-b3135 && cd functions && bash scripts/deploy-production.sh",
+    "deploy:staging": "firebase use choicestory-b3135 && npm run build && npm run deploy:staging:functions && firebase deploy --only hosting:staging",
+    "deploy:staging:hosting": "bash scripts/deploy-staging-hosting.sh",
+    "deploy:staging:functions": "firebase use choicestory-b3135 && cd functions && bash scripts/deploy-staging.sh",
     "verify:firebase": "node firebase-config-verification.js"
   },
   "dependencies": {

@@ -24,7 +24,6 @@ export interface ImageGenerationOptions {
   };
   folderPath?: string;
   updatePath?: string; // Add updatePath parameter
-  environment?: 'development' | 'production'; // Required for story images
 }
 
 export interface CombinedImageGenerationOptions {
@@ -34,7 +33,6 @@ export interface CombinedImageGenerationOptions {
   pageText: string;
   pageNum?: number;
   updatePath?: string;
-  environment: 'development' | 'production';
 }
 
 /**
@@ -53,13 +51,13 @@ export class ImageGenerationApi {
    * @returns Promise with success/error result and image URLs
    */
   static async generateImageWithPrompt(options: CombinedImageGenerationOptions): Promise<ImageGenerationResult> {
-    const { userId, kidDetails, storyId, pageText, pageNum, updatePath, environment } = options;
+    const { userId, kidDetails, storyId, pageText, pageNum, updatePath } = options;
 
     // Validate required parameters
-    if (!userId || !kidDetails || !pageText || !storyId || !environment) {
+    if (!userId || !kidDetails || !pageText || !storyId) {
       return {
         success: false,
-        error: "Missing required parameters: userId, kidDetails, pageText, storyId, or environment"
+        error: "Missing required parameters: userId, kidDetails, pageText, or storyId"
       };
     }
 
@@ -78,8 +76,7 @@ export class ImageGenerationApi {
         accountId: userId,
         userId: userId,
         storyId: storyId,
-        updatePath: updatePath,
-        environment: environment
+        updatePath: updatePath
       };
       
       console.log("[ImageGeneration] Calling Firebase generateImagePromptAndImage with:", request);
@@ -137,19 +134,10 @@ export class ImageGenerationApi {
       let response;
       if (isAvatarGeneration) {
         // Generate avatar using Firebase function
-        // Validate that environment is present for avatar generation
-        if (!options.environment) {
-          return {
-            success: false,
-            error: "environment is required for avatar generation"
-          };
-        }
-        
         const avatarRequest = {
           imageUrl: kidDetails.avatarUrl || "", // Use kid's avatar as reference
           accountId: userId, // Using userId as accountId for now
-          userId: userId,
-          environment: options.environment
+          userId: userId
         };
         
         console.log("[ImageGeneration] Calling Firebase generateKidAvatarImage with:", avatarRequest);
@@ -164,22 +152,13 @@ export class ImageGenerationApi {
           };
         }
         
-        // Validate that environment is present for story image generation
-        if (!options.environment) {
-          return {
-            success: false,
-            error: "environment is required for story image generation"
-          };
-        }
-        
         const storyImageRequest = {
           imagePrompt: prompt,
           imageUrl: kidDetails.avatarUrl || "", // Use kid's avatar as reference
           accountId: userId, // Using userId as accountId for now
           userId: userId,
           storyId: storyId,
-          updatePath: options.updatePath, // Pass updatePath if provided
-          environment: options.environment
+          updatePath: options.updatePath // Pass updatePath if provided
         };
         
         console.log("[ImageGeneration] Calling Firebase generateStoryPageImage with:", storyImageRequest);
@@ -215,7 +194,7 @@ export class ImageGenerationApi {
   /**
    * Generate avatar image
    */
-  static async generateAvatarImage(userId: string, kidDetails: KidDetails, characteristics: string, environment: 'development' | 'production' = 'development'): Promise<ImageGenerationResult> {
+  static async generateAvatarImage(userId: string, kidDetails: KidDetails, characteristics: string): Promise<ImageGenerationResult> {
     const prompt = PromptTemplates.AVATAR_BASE_PROMPT(kidDetails.age, kidDetails.gender, characteristics);
     
     return this.generateImage({
@@ -224,7 +203,6 @@ export class ImageGenerationApi {
       prompt,
       outputCount: 2,
       folderPath: `users/${userId}/avatars`,
-      environment: environment,
       parameters: {
         model: 'dall-e-3',
         quality: 'hd',
@@ -240,8 +218,7 @@ export class ImageGenerationApi {
   static async generateStoryImage(
     userId: string, 
     kidDetails: KidDetails, 
-    customPrompt: string,
-    environment: 'development' | 'production' = 'development'
+    customPrompt: string
   ): Promise<ImageGenerationResult> {
     const finalPrompt = `Create img vibrant, Pixar-like 3D style: ${customPrompt}. Make it engaging and appropriate for a ${kidDetails.age}-year-old ${kidDetails.gender}.`;
     
@@ -251,7 +228,6 @@ export class ImageGenerationApi {
       prompt: finalPrompt,
       outputCount: 1,
       folderPath: `users/${userId}/stories`,
-      environment: environment,
       parameters: {
         model: 'dall-e-3',
         quality: 'hd',
@@ -274,7 +250,6 @@ export class ImageGenerationApi {
     isGoodChoice: boolean;
     userId?: string;
     kidId?: string;
-    environment?: 'development' | 'production';
   }): Promise<ImageGenerationResult> {
     const { 
       choiceDescription, 
@@ -311,7 +286,6 @@ export class ImageGenerationApi {
       prompt,
       outputCount: 1,
       folderPath: `users/${userId}/choices`,
-      environment: params.environment || 'development',
       parameters: {
         model: 'dall-e-3',
         quality: 'hd',

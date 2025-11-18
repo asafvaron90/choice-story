@@ -3,6 +3,7 @@ import firestoreServerService from '@/app/services/firestore.server';
 import { Account } from '@/models';
 import { verifyAuthHeader } from '@/app/utils/auth-helpers';
 import * as Sentry from '@sentry/nextjs';
+import { logger } from '@/lib/logger';
 
 /**
  * Helper function to check if the authenticated user is authorized to modify the account
@@ -15,6 +16,7 @@ function isAuthorized(accountUid: string, authenticatedUid: string | null): bool
  * GET endpoint to get account by email
  */
 export async function GET(req: NextRequest) {
+  logger.info({ message: 'GET /api/account called' });
   return Sentry.startSpan(
     {
       op: "http.server",
@@ -40,7 +42,6 @@ export async function GET(req: NextRequest) {
 
         const { searchParams } = new URL(req.url);
         const email = searchParams.get('email');
-        
         span.setAttribute("request_email", email || "missing");
         
         if (!email) {
@@ -75,6 +76,7 @@ export async function GET(req: NextRequest) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         
+        logger.error({ message: 'Error in GET /api/account', error });
         console.error('[/api/account] Error in GET:', error);
         
         span.setAttribute("error_type", "exception");
@@ -105,7 +107,8 @@ function normalizeAccountData(body: unknown): Account {
   const data = body as Record<string, unknown>;
   
   // Convert date strings to Date objects if they exist
-  const createAt = data.createAt 
+  console.log('Normalizing account data:', data);
+  const createAt = data.createAt
     ? (data.createAt instanceof Date ? data.createAt : new Date(data.createAt as string))
     : new Date();
   
@@ -142,6 +145,7 @@ function normalizeAccountData(body: unknown): Account {
  * POST endpoint to create or update an account
  */
 export async function POST(req: NextRequest) {
+  logger.info({ message: 'POST /api/account called' });
   return Sentry.startSpan(
     {
       op: "http.server",
@@ -159,7 +163,17 @@ export async function POST(req: NextRequest) {
         const authenticatedUid = decodedToken?.uid;
         console.log(`[/api/account] POST - Token verified: ${!!decodedToken}, authenticatedUid: ${authenticatedUid || 'none'}`);
         
-        requestBody = await req.json();
+        try {
+          requestBody = await req.json();
+        } catch (error) {
+          logger.error({ message: 'Error parsing request body', error });
+          return NextResponse.json({
+            success: false,
+            error: 'Invalid request body',
+            message: 'The request body could not be parsed as JSON.'
+          }, { status: 400 });
+        }
+        
         const body = requestBody as Record<string, unknown>;
         console.log(`[/api/account] POST - Request body UID: ${body.uid}, email: ${body.email}`);
         
@@ -181,12 +195,13 @@ export async function POST(req: NextRequest) {
         // Check authorization - only allow users to modify their own account
         console.log(`[/api/account] Authorization check: body.uid=${body.uid}, authenticatedUid=${authenticatedUid}, authorized=${isAuthorized(body.uid as string, authenticatedUid || null)}`);
         
-        // Temporary: Allow the request to proceed even if UIDs don't match, but log the mismatch
         if (!isAuthorized(body.uid as string, authenticatedUid || null)) {
-          console.log(`[/api/account] WARNING: UID mismatch - body.uid=${body.uid}, authenticatedUid=${authenticatedUid}`);
-          console.log(`[/api/account] Allowing request to proceed for debugging purposes`);
-          span.setAttribute("authorization_warning", "UID mismatch");
-          // TODO: Remove this temporary fix once the issue is resolved
+          span.setAttribute("error_type", "unauthorized");
+          return NextResponse.json({
+            success: false,
+            error: "Unauthorized",
+            message: "User is not authorized to modify this account"
+          }, { status: 401 });
         }
         
         console.log(`[/api/account] Received request to save account data for UID: ${body.uid}`);
@@ -194,6 +209,8 @@ export async function POST(req: NextRequest) {
         // Normalize account data (convert date strings to Date objects)
         const accountData = normalizeAccountData(requestBody);
         
+        console.log('[/api/account] Normalized account data:', accountData);
+
         // Check if account exists
         const existingAccount = await firestoreServerService.getAccountByUid(body.uid as string);
         
@@ -228,6 +245,7 @@ export async function POST(req: NextRequest) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         const errorStack = error instanceof Error ? error.stack : undefined;
         
+        logger.error({ message: 'Error in POST /api/account', error, context: { requestBody } });
         console.error('[/api/account] Error in POST:', error);
         console.error('[/api/account] Error details:', {
           message: errorMessage,

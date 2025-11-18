@@ -15,6 +15,19 @@ db.settings({
 // Helper function to get the database instance
 export const getDb = () => db;
 
+/**
+ * Get the current environment from NODE_ENV
+ * Returns 'development' if NODE_ENV is 'development', otherwise 'production'
+ * Defaults to 'production' if NODE_ENV is not set
+ */
+export function getEnvironment(): 'development' | 'production' {
+  const nodeEnv = process.env.NODE_ENV;
+  if (nodeEnv === 'development') {
+    return 'development';
+  }
+  return 'production';
+}
+
 // Initialize Firestore Helper for consistent database access
 // Environment must be passed from the request, not from process.env
 export const getFirestoreHelper = (environment: string) => {

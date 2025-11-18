@@ -231,6 +231,11 @@ export class NetworkClient {
           status: response.status
         } as ApiErrorResponse;
       } catch (_error) {
+        logger.error({
+          message: 'Error parsing response',
+          error: _error,
+          context: { endpoint: response.url }
+        });
         throw {
           success: false,
           error: 'Network request failed',
