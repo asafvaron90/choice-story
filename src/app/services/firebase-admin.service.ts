@@ -1,6 +1,7 @@
 import { getApps, initializeApp, cert, App } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
 /**
  * Service to handle Firebase Admin SDK initialization and provide access to admin services
@@ -11,6 +12,7 @@ export class FirebaseAdminService {
   private app: App | null = null;
   private storage: ReturnType<typeof getStorage> | null = null;
   private firestore: FirebaseFirestore.Firestore | null = null;
+  private auth: ReturnType<typeof getAuth> | null = null;
   private isInitialized = false;
   private initializationError: string | null = null;
 
@@ -176,6 +178,22 @@ export class FirebaseAdminService {
       this.firestore = getFirestore(this.app, 'choice-story-db');
     }
     return this.firestore;
+  }
+
+  /**
+   * Get the Firebase Admin Auth instance
+   */
+  public getAuth() {
+    if (!this.isInitialized || !this.app) {
+      const error = this.initializationError || 'Firebase Admin not initialized';
+      console.error('[FIREBASE_ADMIN] Cannot get Auth:', error);
+      throw new Error(error);
+    }
+    if (!this.auth) {
+      console.log('[FIREBASE_ADMIN] Creating new Auth instance');
+      this.auth = getAuth(this.app);
+    }
+    return this.auth;
   }
 
   /**

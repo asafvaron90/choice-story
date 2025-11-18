@@ -9,6 +9,7 @@ import { logger } from '@/lib/logger';
  * Helper function to check if the authenticated user is authorized to modify the account
  */
 function isAuthorized(accountUid: string, authenticatedUid: string | null): boolean {
+  console.log('isAuthorized: accountUid=', accountUid, 'authenticatedUid=', authenticatedUid);
   return authenticatedUid === accountUid;
 }
 
