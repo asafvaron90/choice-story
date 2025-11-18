@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import firestoreServerService from "@/app/services/firestore.server";
 import { KidCreateRequestSchema, KidUpdateRequestSchema } from "@choiceStoryWeb/models";
 import { verifyAuthHeader } from "@/app/utils/auth-helpers";
+import { checkFirestoreReady } from "@/app/utils/api-helpers";
 
 /**
  * POST endpoint to create or update a kid
  */
 export async function POST(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     const decodedToken = await verifyAuthHeader(authHeader);

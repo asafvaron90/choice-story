@@ -3,6 +3,7 @@ import { z } from "zod";
 import firestoreServerService from "@/app/services/firestore.server";
 import { Story, StoryStatus, PageType } from "@/models";
 import { verifyAuthHeader } from "@/app/utils/auth-helpers";
+import { checkFirestoreReady } from "@/app/utils/api-helpers";
 
 // Schema for story validation
 const CreateStorySchema = z.object({
@@ -45,6 +46,10 @@ const CreateStorySchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     const decodedToken = await verifyAuthHeader(authHeader);
@@ -128,6 +133,10 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest): Promise<Response> {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     const storyId = req.nextUrl.searchParams.get("storyId");
     const userId = req.nextUrl.searchParams.get("userId");
     const kidId = req.nextUrl.searchParams.get("kidId");
@@ -184,6 +193,10 @@ export async function GET(req: NextRequest): Promise<Response> {
  */
 export async function DELETE(req: NextRequest): Promise<Response> {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     const authHeader = req.headers.get('Authorization');
     const decodedToken = await verifyAuthHeader(authHeader);
     const _authenticatedUid = decodedToken?.uid;
@@ -223,6 +236,10 @@ export async function DELETE(req: NextRequest): Promise<Response> {
  */
 export async function PATCH(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     const decodedToken = await verifyAuthHeader(authHeader);
