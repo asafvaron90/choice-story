@@ -16,6 +16,13 @@ if (process.env.NODE_ENV === 'production' || process.env.CI) {
 }
 
 const nextConfig: NextConfig = {
+  // Enable instrumentation hook for server-side initialization
+  experimental: {
+    instrumentationHook: true,
+    serverActions: {
+      allowedOrigins: ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS : ['http://localhost:3000'],
+    }
+  },
   // Explicitly embed environment variables in the build
   // Note: NEXT_PUBLIC_ variables should be automatically embedded by Next.js,
   // but we include them here as a fallback to ensure they're available
@@ -30,11 +37,6 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     NEXT_PUBLIC_FIREBASE_ENV: process.env.NEXT_PUBLIC_FIREBASE_ENV || process.env.FIREBASE_ENV || 'production',
     NEXT_PUBLIC_GEMINI_API_KEY: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
-  },
-  experimental: {
-    serverActions: {
-      allowedOrigins: ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS : ['http://localhost:3000'],
-    }
   },
   images: {
     remotePatterns: [
