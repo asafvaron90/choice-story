@@ -2,7 +2,10 @@ import * as functions from "firebase-functions/v1";
 import { generateText } from "../text-generation";
 import { OPENAI_AGENTS } from "../open-ai-agents";
 
-export const generateStoryTitles = functions.https.onCall(
+export const generateStoryTitles = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '1GB'
+}).https.onCall(
   async (data, context) => {
     if (!context?.auth) {
       throw new functions.https.HttpsError(

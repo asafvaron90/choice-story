@@ -65,7 +65,10 @@ Moral Disadvantages: ${disadvantages}`;
  *   "storyId": "story_id"
  * }
  */
-export const generateStoryPagesText = functions.https.onCall(
+export const generateStoryPagesText = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '1GB'
+}).https.onCall(
   async (data, context) => {
     if (!context?.auth) {
       throw new functions.https.HttpsError(
@@ -121,7 +124,10 @@ export const generateStoryPagesText = functions.https.onCall(
  *   ...
  * }
  */
-export const generateStoryPagesTextHttp = functions.https.onRequest(
+export const generateStoryPagesTextHttp = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '1GB'
+}).https.onRequest(
   async (request, response) => {
     // CORS headers
     response.set('Access-Control-Allow-Origin', '*');
@@ -215,7 +221,10 @@ export const generateStoryPagesTextHttp = functions.https.onRequest(
  *   "age": 8 (optional)
  * }
  */
-export const generateStoryImagePrompt = functions.https.onCall(
+export const generateStoryImagePrompt = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '1GB'
+}).https.onCall(
   async (data, context) => {
     if (!context?.auth) {
       throw new functions.https.HttpsError(
