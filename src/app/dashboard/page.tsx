@@ -13,8 +13,8 @@ import { useTranslation } from '../hooks/useTranslation';
 export default function Dashboard() {
   const { t } = useTranslation();
   const { 
-    kids, 
-    error, 
+    kids,
+    error,
     refreshKids,
     deleteKid,
     kidsLoaded  // This tells us if we've fetched kids data at least once
@@ -100,6 +100,7 @@ export default function Dashboard() {
 
   const handleRefresh = () => {
     if (refreshKids) {
+      refreshKids();
       Sentry.startSpan(
         {
           op: "ui.click",
@@ -108,7 +109,6 @@ export default function Dashboard() {
         (span) => {
           span.setAttribute("action", "manual_refresh");
           span.setAttribute("kids_count", kids.length.toString());
-          refreshKids();
         },
       );
     }

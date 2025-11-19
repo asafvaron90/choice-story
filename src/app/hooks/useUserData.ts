@@ -31,12 +31,19 @@ export function useUserData() {
     deleteKid
   } = useKidsState();
   
+  // Auto-fetch user data when firebase user is available
+  useEffect(() => {
+    if (firebaseUser && !userData && !isFetchingUserData) {
+      fetchUserData(firebaseUser);
+    }
+  }, [firebaseUser, userData, isFetchingUserData, fetchUserData]);
+
   // Auto-fetch kids when user data changes
   useEffect(() => {
-    const shouldFetchKids = 
-      firebaseUser && 
-      userData && 
-      !isFetchingUserData && 
+    const shouldFetchKids =
+      firebaseUser &&
+      userData &&
+      !isFetchingUserData &&
       userData.uid &&
       (!kidsLastFetched || Date.now() - kidsLastFetched > 5 * 60 * 1000); // Refetch every 5 minutes
     
@@ -64,7 +71,13 @@ export function useUserData() {
     // Actions
     updateUser: updateUserInFirestore,
     refreshUserData: firebaseUser ? () => fetchUserData(firebaseUser) : undefined,
-    refreshKids: userData ? () => fetchKids(userData.uid) : undefined,
+    refreshKids: () => {
+      if (userData?.uid) {
+        fetchKids(userData.uid);
+      } else {
+        console.warn("refreshKids called without userData.uid");
+      }
+    },
     deleteKid: (kidId: string) => deleteKid(kidId),
   };
 }

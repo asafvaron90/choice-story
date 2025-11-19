@@ -85,6 +85,8 @@ const useKidsState = create<KidsState>((set, get) => ({
       // Stale-while-revalidate: return cached data immediately if available
       if (lastFetched && kids.length > 0) {
         console.log('Using cached kids data:', kids);
+        set({ isLoading: true });
+        await new Promise(res => setTimeout(res, 500)); // Simulate slight delay
         set({ isLoading: false });
 
         // If cache is stale, refresh in background
