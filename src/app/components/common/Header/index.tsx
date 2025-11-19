@@ -70,11 +70,11 @@ export const Header = () => {
             "flex items-center",
             isRTL ? "order-3 md:order-3" : "order-1 md:order-1"
           )}>
-            <Link href="/" className="relative">
+            <Link href="/" prefetch={true} className="relative">
               <div className="w-[120px] h-[30px] relative">
-                <Image 
-                  src="/landing-page-images/logo.svg" 
-                  alt="Choice Story" 
+                <Image
+                  src="/landing-page-images/logo.svg"
+                  alt="Choice Story"
                   fill
                   style={{ objectFit: 'contain' }}
                   priority
@@ -132,8 +132,9 @@ export const Header = () => {
                       transition={{ duration: 0.3 }}
                       className="flex flex-col items-center mb-6"
                     >
-                      <Link 
-                        href="/" 
+                      <Link
+                        href="/"
+                        prefetch={true}
                         onClick={() => setIsDrawerOpen(false)}
                         className="hover:opacity-80 transition-opacity"
                       >

@@ -38,7 +38,7 @@ export function useKidStoryLoader(kidId: string | null | undefined) {
 
     try {
       console.log(`[useKidStoryLoader] Attempting to load kid details. kidId: ${kidId}, currentUser.uid: ${currentUser?.uid}`);
-      
+
       // Only reset state if we're loading a different kid
       if (kidId && kidId !== existingKidDetails?.id) {
         resetProgressState();
@@ -86,7 +86,7 @@ export function useKidStoryLoader(kidId: string | null | undefined) {
         setKid(fetchedKid);
         setKidDetails(fetchedKid);
         setHasLoaded(true);
-        
+
         console.log('[useKidStoryLoader] After setting kidDetails in state:', {
           id: fetchedKid.id,
           name: fetchedKid.name,
@@ -128,20 +128,7 @@ export function useKidStoryLoader(kidId: string | null | undefined) {
       });
       setError("Failed to load kid details. Please try again.");
     }
-  }, [
-    authLoading,
-    currentUser?.uid,
-    kidId,
-    existingKidDetails?.id,
-    hasLoaded,
-    fetchKidById,
-    setKidDetails,
-    resetProgressState,
-    resetStoryState,
-    router,
-    fetchKids,
-    kids.length
-  ]);
+  }, [authLoading, currentUser, hasLoaded, kidId, existingKidDetails?.id, kids, resetProgressState, resetStoryState, fetchKidById, setKidDetails, router, fetchKids]);
 
   // Memoize the key dependencies to prevent unnecessary effect runs
   const currentUserId = useMemo(() => currentUser?.uid, [currentUser?.uid]);
@@ -162,10 +149,10 @@ export function useKidStoryLoader(kidId: string | null | undefined) {
   // Use the error from kids state if available
   const finalError = kidsError || error;
 
-  return { 
-    loading: authLoading || kidsLoading, 
-    error: finalError, 
-    kid, 
-    router 
+  return {
+    loading: authLoading || kidsLoading,
+    error: finalError,
+    kid,
+    router
   };
 } 
