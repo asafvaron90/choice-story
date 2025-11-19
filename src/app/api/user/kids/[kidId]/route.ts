@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import firestoreServerService from "@/app/services/firestore.server";
 import { verifyAuthHeader } from "@/app/utils/auth-helpers";
+import { checkFirestoreReady } from "@/app/utils/api-helpers";
 
 /**
  * GET endpoint to fetch a specific kid by ID
@@ -10,6 +11,10 @@ export async function GET(
   { params }: { params: Promise<{ kidId: string }> }
 ): Promise<Response> {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(request);
+    if (readyCheck) return readyCheck;
+
     // Extract and await kidId before usage
     const { kidId } = await params;
     
@@ -57,6 +62,10 @@ export async function DELETE(
   { params }: { params: Promise<{ kidId: string }> }
 ): Promise<Response> {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(request);
+    if (readyCheck) return readyCheck;
+
     // Extract and await kidId before usage
     const { kidId } = await params;
     

@@ -21,7 +21,10 @@ import { generateImage } from "../image-generation";
  *   ]
  * }
  */
-export const generateImageFunction = functions.https.onCall(
+export const generateImageFunction = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '2GB'
+}).https.onCall(
   async (data, context) => {
     // Check if user is authenticated
     if (!context?.auth) {

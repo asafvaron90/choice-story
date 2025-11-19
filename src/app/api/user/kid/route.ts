@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import firestoreServerService from "@/app/services/firestore.server";
 import { KidDetails } from '@/models';
+import { checkFirestoreReady } from "@/app/utils/api-helpers";
 
 // Schema for kid data
 // const KidSchema = z.object({
@@ -22,6 +23,10 @@ import { KidDetails } from '@/models';
  */
 export async function POST(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     const validatedInput: {
       userId: string;
       kid: KidDetails;
@@ -64,6 +69,10 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     const kidId = req.nextUrl.searchParams.get("kidId");
     
     if (!kidId) {
@@ -102,6 +111,10 @@ export async function GET(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     const kidId = req.nextUrl.searchParams.get("kidId");
     
     if (!kidId) {

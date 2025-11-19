@@ -13,8 +13,8 @@ import { useTranslation } from '../hooks/useTranslation';
 export default function Dashboard() {
   const { t } = useTranslation();
   const { 
-    kids, 
-    error, 
+    kids,
+    error,
     refreshKids,
     deleteKid,
     kidsLoaded  // This tells us if we've fetched kids data at least once
@@ -24,11 +24,18 @@ export default function Dashboard() {
   const { isLoading: isLoadingKids } = useKidsState();
   
   const router = useRouter();
+ 
+  // Fetch kids if they haven't been loaded yet
+  useEffect(() => {
+    if (!kidsLoaded && refreshKids) {
+      refreshKids();
+    }
+  }, [kidsLoaded, refreshKids]);
 
   // Determine if we should show loading state
   // Show loading if: currently loading OR we haven't loaded kids yet
   const showLoading = isLoadingKids || !kidsLoaded;
-
+ 
   // Track initial load performance
   useEffect(() => {
     if (kids.length > 0 && !isLoadingKids) {
@@ -93,6 +100,7 @@ export default function Dashboard() {
 
   const handleRefresh = () => {
     if (refreshKids) {
+      refreshKids();
       Sentry.startSpan(
         {
           op: "ui.click",
@@ -101,7 +109,6 @@ export default function Dashboard() {
         (span) => {
           span.setAttribute("action", "manual_refresh");
           span.setAttribute("kids_count", kids.length.toString());
-          refreshKids();
         },
       );
     }

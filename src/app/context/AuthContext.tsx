@@ -216,11 +216,11 @@ export function AuthProvider({ children, auth }: AuthProviderProps) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log("onAuthStateChanged user: ", user);
       setFirebaseCurrentUser(user);
-      
+
       // Convert to domain user
       const domUser = convertToDomainUser(user);
       setDomainUser(domUser);
-      
+
       // Only create/update account data if a user exists
       if (user) {
         try {

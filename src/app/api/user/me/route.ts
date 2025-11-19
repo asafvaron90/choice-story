@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import firestoreServerService from "@/app/services/firestore.server";
 import FirestoreService from "@/app/services/firestore.service";
 import { verifyAuthHeader } from "@/app/utils/auth-helpers";
+import { checkFirestoreReady } from "@/app/utils/api-helpers";
 import { getCorsHeaders, CORS_PREFLIGHT_HEADERS } from "@/config/build-config";
 
 // Handle OPTIONS requests for CORS preflight
@@ -60,6 +61,12 @@ export async function GET(req: NextRequest) {
     
     try {
       // Check if server-side service is available
+      const readyCheck = checkFirestoreReady(req);
+      if (readyCheck && process.env.NODE_ENV !== 'development') {
+        // In production/staging, return error if service is not ready
+        return readyCheck;
+      }
+      
       if (!firestoreServerService.isReady()) {
         const serverError = firestoreServerService.getInitializationError();
         console.error("[/api/user/me] Server-side Firestore not available:", serverError);

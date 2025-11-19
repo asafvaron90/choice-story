@@ -6,7 +6,9 @@ import { getDb, getEnvironment, getFirestoreHelper } from "../lib/utils";
  * Example HTTP Cloud Function
  * You can call this from your Next.js app or directly via HTTP
  */
-export const healthCheck = functions.https.onRequest((request, response) => {
+export const healthCheck = functions.runWith({
+  memory: '512MB'
+}).https.onRequest((request, response) => {
   response.status(200).send("OK");
 });
 
@@ -14,7 +16,9 @@ export const healthCheck = functions.https.onRequest((request, response) => {
  * Debug Environment and Collections
  * Helps debug collection path issues
  */
-export const debugEnvironment = functions.https.onRequest(async (request, response) => {
+export const debugEnvironment = functions.runWith({
+  memory: '512MB'
+}).https.onRequest(async (request, response) => {
   try {
     const environment = getEnvironment();
     const dbHelper = getFirestoreHelper(environment);

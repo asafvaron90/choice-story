@@ -54,8 +54,8 @@ interface KidsState {
   deleteKid: (kidId: string, user?: FirebaseUser | null) => Promise<boolean>;
 }
 
-// Cache duration in milliseconds (5 minutes)
-const CACHE_DURATION = 5 * 60 * 1000;
+// Cache duration in milliseconds (15 minutes)
+const CACHE_DURATION = 15 * 60 * 1000;
 
 // Helper function to log kids for debugging
 const logKidsState = (kids: KidDetails[]) => {
@@ -79,50 +79,70 @@ const useKidsState = create<KidsState>((set, get) => ({
   
   // Fetch all kids for an account
   fetchKids: async (accountId, _user) => {
+    const { kids, lastFetched } = get();
+
     try {
-      set({ isLoading: true, error: null });
-      
-      // First check if we already have kids cached and they're fresh
-      const { kids, lastFetched } = get();
-      if (
-        lastFetched && 
-        Date.now() - lastFetched < CACHE_DURATION
-      ) {
+      // Stale-while-revalidate: return cached data immediately if available
+      if (lastFetched && kids.length > 0) {
         console.log('Using cached kids data:', kids);
+        set({ isLoading: true });
+        await new Promise(res => setTimeout(res, 500)); // Simulate slight delay
         set({ isLoading: false });
+
+        // If cache is stale, refresh in background
+        if (Date.now() - lastFetched > CACHE_DURATION) {
+          console.log('Cache is stale, refreshing in background...');
+          // Don't await - fetch in background
+          KidApi.getKids(accountId).then(response => {
+            if (response.success && response.data?.success) {
+              const fetchedKids = response.data.kids.map(ensureValidKid);
+              logKidsState(fetchedKids);
+              set({
+                kids: fetchedKids,
+                lastFetched: Date.now(),
+                error: null
+              });
+            }
+          }).catch(error => {
+            console.error('Background refresh failed:', error);
+          });
+        }
+
         return kids;
       }
-      
-      // If no valid cache, fetch kids from API using KidApi
+
+      // No cache - show loading and fetch
+      set({ isLoading: true, error: null });
+
       const response = await KidApi.getKids(accountId);
-      
+
       if (!response.success) {
         throw new Error(response.error);
       }
-      
+
       if (!response.data?.success) {
         throw new Error('Failed to load kids data');
       }
-      
+
       // Map API KidDetails to Kid type with required fields
       const fetchedKids = response.data.kids.map(ensureValidKid);
       logKidsState(fetchedKids);
-      
-      set({ 
-        kids: fetchedKids, 
+
+      set({
+        kids: fetchedKids,
         lastFetched: Date.now(),
         isLoading: false,
         error: null
       });
-      
+
       return fetchedKids;
     } catch (error) {
       console.error('Error fetching kids:', error);
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'Failed to fetch kids',
-        isLoading: false 
+        isLoading: false
       });
-      return get().kids; // Return current kids on error
+      return kids; // Return current kids on error
     }
   },
   

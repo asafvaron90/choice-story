@@ -1,9 +1,4 @@
 import { firebaseAdmin } from '@/app/services/firebase-admin.service';
-import { getAuth } from 'firebase-admin/auth';
-import { getApps } from 'firebase-admin/app';
-
-// Ensure Firebase Admin is initialized
-firebaseAdmin.isReady();
 
 /**
  * Verify a Firebase ID token from a client
@@ -14,20 +9,22 @@ export async function verifyIdToken(token: string) {
   try {
     console.log(`[verifyIdToken] Starting token verification`);
     
-    // Make sure Firebase Admin is initialized (should be done in firestore.server.ts)
-    if (!getApps().length) {
+    // Make sure Firebase Admin is initialized
+    if (!firebaseAdmin.isReady()) {
+      const adminError = firebaseAdmin.getInitializationError();
       console.error(`[verifyIdToken] Firebase Admin SDK not initialized`);
       console.error('[verifyIdToken] Environment check:', {
         projectId: !!process.env.FIREBASE_PROJECT_ID,
         clientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
         privateKey: !!process.env.FIREBASE_PRIVATE_KEY,
         env: process.env.NODE_ENV,
+        initializationError: adminError,
       });
-      throw new Error('Firebase Admin SDK not initialized');
+      throw new Error(adminError || 'Firebase Admin SDK not initialized');
     }
     
-    // Get the Auth instance
-    const auth = getAuth();
+    // Get the Auth instance from the Firebase Admin service
+    const auth = firebaseAdmin.getAuth();
     console.log(`[verifyIdToken] Got Firebase Auth instance`);
     
     // Log token format check (without exposing the actual token)

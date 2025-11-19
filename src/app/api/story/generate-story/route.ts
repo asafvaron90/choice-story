@@ -3,6 +3,7 @@ import { z } from "zod";
 import firestoreServerService from "@/app/services/firestore.server";
 import { Story, StoryStatus, PageType } from "@/models";
 import { verifyAuthHeader } from "@/app/utils/auth-helpers";
+import { checkFirestoreReady } from "@/app/utils/api-helpers";
 
 // Schema for creating a story
 const CreateStorySchema = z.object({
@@ -57,6 +58,10 @@ const DeleteStorySchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     const decodedToken = await verifyAuthHeader(authHeader);
@@ -119,6 +124,10 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     const decodedToken = await verifyAuthHeader(authHeader);
@@ -189,6 +198,10 @@ export async function GET(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     const decodedToken = await verifyAuthHeader(authHeader);

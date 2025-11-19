@@ -13,7 +13,10 @@ import { generateText } from "../text-generation";
  *   "input": "Your input text here"
  * }
  */
-export const generateTextFunction = functions.https.onCall(
+export const generateTextFunction = functions.runWith({
+  timeoutSeconds: 540,
+  memory: '1GB'
+}).https.onCall(
   async (data, context) => {
     // Check if user is authenticated
     if (!context?.auth) {

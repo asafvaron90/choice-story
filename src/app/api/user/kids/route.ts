@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import firestoreServerService from "@/app/services/firestore.server";
 import { verifyAuthHeader } from "@/app/utils/auth-helpers";
+import { checkFirestoreReady } from "@/app/utils/api-helpers";
 
 /**
  * GET endpoint to fetch all kids for a user
  */
 export async function GET(req: NextRequest) {
   try {
+    // Check if Firestore service is ready before proceeding
+    const readyCheck = checkFirestoreReady(req);
+    if (readyCheck) return readyCheck;
+
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     console.log(`[/api/user/kids] Auth header present: ${!!authHeader}`);

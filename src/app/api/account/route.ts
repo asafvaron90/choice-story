@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import firestoreServerService from '@/app/services/firestore.server';
 import { Account } from '@/models';
 import { verifyAuthHeader } from '@/app/utils/auth-helpers';
+import { checkFirestoreReady } from '@/app/utils/api-helpers';
 import * as Sentry from '@sentry/nextjs';
 import { logger } from '@/lib/logger';
 
@@ -9,6 +10,7 @@ import { logger } from '@/lib/logger';
  * Helper function to check if the authenticated user is authorized to modify the account
  */
 function isAuthorized(accountUid: string, authenticatedUid: string | null): boolean {
+  console.log('isAuthorized: accountUid=', accountUid, 'authenticatedUid=', authenticatedUid);
   return authenticatedUid === accountUid;
 }
 
@@ -24,6 +26,10 @@ export async function GET(req: NextRequest) {
     },
     async (span) => {
       try {
+        // Check if Firestore service is ready before proceeding
+        const readyCheck = checkFirestoreReady(req);
+        if (readyCheck) return readyCheck;
+
         // Verify authentication
         const authHeader = req.headers.get('Authorization');
         const decodedToken = await verifyAuthHeader(authHeader);
@@ -155,6 +161,10 @@ export async function POST(req: NextRequest) {
       let requestBody: unknown = null;
       
       try {
+        // Check if Firestore service is ready before proceeding
+        const readyCheck = checkFirestoreReady(req);
+        if (readyCheck) return readyCheck;
+
         // Verify authentication
         const authHeader = req.headers.get('Authorization');
         console.log(`[/api/account] POST - Auth header present: ${!!authHeader}`);
