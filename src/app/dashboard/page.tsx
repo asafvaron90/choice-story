@@ -24,11 +24,18 @@ export default function Dashboard() {
   const { isLoading: isLoadingKids } = useKidsState();
   
   const router = useRouter();
+ 
+  // Fetch kids if they haven't been loaded yet
+  useEffect(() => {
+    if (!kidsLoaded && refreshKids) {
+      refreshKids();
+    }
+  }, [kidsLoaded, refreshKids]);
 
   // Determine if we should show loading state
   // Show loading if: currently loading OR we haven't loaded kids yet
   const showLoading = isLoadingKids || !kidsLoaded;
-
+ 
   // Track initial load performance
   useEffect(() => {
     if (kids.length > 0 && !isLoadingKids) {

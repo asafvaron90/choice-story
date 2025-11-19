@@ -217,8 +217,13 @@ export class NetworkClient {
           status: response.status
         }
       });
+
+      // Try to get response text first
+      const responseText = await response.text();
+
+      // Try to parse as JSON
       try {
-        const errorData = await response.json();
+        const errorData = JSON.parse(responseText);
         logger.error({
           message: 'Error response from server',
           error: errorData,
@@ -230,15 +235,16 @@ export class NetworkClient {
           message: errorData.message,
           status: response.status
         } as ApiErrorResponse;
-      } catch (_error) {
+      } catch (parseError) {
+        // If JSON parsing fails, use the text as error message
         logger.error({
-          message: 'Error parsing response',
-          error: _error,
+          message: 'Non-JSON error response from server',
+          error: responseText,
           context: { endpoint: response.url }
         });
         throw {
           success: false,
-          error: 'Network request failed',
+          error: responseText || 'Network request failed',
           status: response.status
         } as ApiErrorResponse;
       }
