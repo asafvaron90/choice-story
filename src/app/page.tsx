@@ -1,137 +1,86 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { onAuthStateChanged, auth } from "@choiceStoryWeb/firebase";
-import { User } from "firebase/auth";
-import { useTranslation } from "./hooks/useTranslation";
-import { useFirestore } from "./hooks/useFirestore";
-import Image from "next/image";
+import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
-  const { t } = useTranslation();
-  useFirestore(user); // Keep this to log the data
+  const router = useRouter();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    // Listen for auth state changes
-    if (!auth) {
-      // Firebase not initialized during build time
-      setUser(null);
-      return;
-    }
+    // Listen for postMessage events from the iframe
+    const handleMessage = (event: MessageEvent) => {
+      // Log all messages for debugging (remove in production if needed)
+      console.log('Received postMessage:', event.data, 'from origin:', event.origin);
+      
+      // Verify origin for security (adjust if needed)
+      // if (event.origin !== 'https://yaronloubaton.wixstudio.com') return;
+      
+      if (event.data && typeof event.data === 'object') {
+        // Handle navigation messages
+        if (event.data.type === 'navigate' && event.data.path) {
+          console.log('Navigating to:', event.data.path);
+          router.push(event.data.path);
+        }
+        // Handle direct path strings in object
+        else if (event.data.path) {
+          console.log('Navigating to path:', event.data.path);
+          router.push(event.data.path);
+        }
+        // Handle route property
+        else if (event.data.route) {
+          console.log('Navigating to route:', event.data.route);
+          router.push(event.data.route);
+        }
+      }
+      // Handle string messages that look like paths
+      else if (typeof event.data === 'string') {
+        if (event.data.startsWith('/')) {
+          console.log('Navigating to string path:', event.data);
+          router.push(event.data);
+        }
+      }
+    };
 
-    try {
-      const unsubscribe = onAuthStateChanged((currentUser) => {
-        setUser(currentUser);
-      });
+    window.addEventListener('message', handleMessage);
 
-      // Cleanup subscription on unmount
-      return () => unsubscribe();
-    } catch (error) {
-      // Firebase not initialized
-      setUser(null);
-    }
-  }, []);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [router]);
 
-  // Authentication functions removed as they are currently unused
+  // Also try to detect iframe navigation by checking URL periodically
+  // Note: This won't work due to CORS, but we'll keep it as a fallback attempt
+  useEffect(() => {
+    const checkIframeNavigation = () => {
+      if (iframeRef.current) {
+        try {
+          // This will fail due to CORS, but we try anyway
+          const iframeUrl = iframeRef.current.contentWindow?.location.pathname;
+          if (iframeUrl && iframeUrl !== window.location.pathname) {
+            router.push(iframeUrl);
+          }
+        } catch (_e) {
+          // CORS error expected - ignore
+        }
+      }
+    };
+
+    // Check periodically (fallback method)
+    const interval = setInterval(checkIframeNavigation, 1000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   return (
-    <main>
-      <div className="hero__block">
-        <div className="container">
-          <div className="outer__hero fade-in">
-            <div className="hero__image">
-              <Image
-                src="/landing-page-images/heroimage.png"
-                alt="heroimage"
-                width={600}
-                height={450}
-                priority
-              />
-            </div>
-            <div className="hero__info">
-              <h1 className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                Choice<span className="text-purple-600">Story</span>
-              </h1>
-              <h6>{t.hero.subtitle}</h6>
-              <p>{t.hero.description}</p>
-              <div className="hero__text">
-                <span></span>
-                <p>{t.hero.detailedText1}</p>
-                <p className="hero__big">{t.hero.detailedText2}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="story__block">
-        <div className="container">
-          <div className="outer__story fade-in">
-            <h2>{t.story.title}</h2>
-            <div className="story__desc">
-              <p>{t.story.description}</p>
-            </div>
-            <div className="story__image">
-              <Image
-                src="/landing-page-images/storyimage.png"
-                alt="storyimage"
-                width={800}
-                height={500}
-              />
-            </div>
-            <div className="story__small">
-              <Image
-                src="/landing-page-images/storysmall.png"
-                alt="storysmall"
-                width={400}
-                height={250}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="desc__block">
-        <div className="container">
-          <div className="outer__desc fade-in">
-            <Image
-              src="/landing-page-images/descimage.svg"
-              alt="descimage"
-              width={600}
-              height={400}
-            />
-            <h2>{t.benefits.title}</h2>
-            <ul>
-              {t.benefits.items.map((item, index) => (
-                <li key={index}>
-                  <span>
-                    <Image
-                      src={`/landing-page-images/desc${index + 1}.svg`}
-                      alt={`desc${index + 1}`}
-                      width={40}
-                      height={40}
-                    />
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div className="contact__form">
-        <div className="container">
-          <div className="outer__contact">
-            <div className="form__inner">
-              <h2>{t.contact.title}</h2>
-              <p>{t.contact.subtitle}</p>
-              {/* Contact form implementation here */}
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+      <iframe
+        ref={iframeRef}
+        src="https://yaronloubaton.wixstudio.com/my-site-2"
+        style={{ width: '100%', height: '100%', border: 'none' }}
+        title="External Content"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation-by-user-activation"
+      />
+    </div>
   );
 }
