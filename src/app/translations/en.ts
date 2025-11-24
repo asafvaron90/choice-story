@@ -54,6 +54,8 @@ export const enTranslations: Translation = {
     }
   },
   createStory: {
+    title: "Create a Story",
+    subtitle: "Create a personalized story for {name}",
     progress: {
       problemDescription: "Problem Description",
       selectTitle: "Select Title",
@@ -119,7 +121,15 @@ export const enTranslations: Translation = {
       selectTitle: "Select a Story Title",
       continue: "Continue",
       placeholder: "{name} doesn't like brushing teeth",
-      verificationError: "Please verify the image before continuing."
+      verificationError: "Please verify the image before continuing.",
+      advantagesLabel: "Advantages (Optional)",
+      advantagesPlaceholder: "e.g., Kid will feel calm and happy",
+      disadvantagesLabel: "Disadvantages (Optional)",
+      disadvantagesPlaceholder: "e.g., Kid will feel anxious",
+      addButton: "Add",
+      editTitleLabel: "Edit Selected Title (Optional)",
+      editTitlePlaceholder: "Customize your story title...",
+      editTitleHint: "You can modify the title before generating your story."
     },
     choices: {
       title: "Story Choices",

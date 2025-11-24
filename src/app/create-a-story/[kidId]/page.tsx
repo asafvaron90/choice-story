@@ -27,9 +27,8 @@ import { StoryPageCard } from '@/app/features/story/components/story/StoryPageCa
 import LoadingIndicator from "@/app/components/ui/LoadingIndicator";
 import ErrorMessage from "@/app/components/ui/ErrorMessage";
 
-import { StoryStatus, Story, StoryPage, pageTypeFromString, PageType } from "@/models";
+import { StoryStatus, Story, StoryPage, PageType } from "@/models";
 import { ErrorBoundary as _ErrorBoundary } from "@/app/components/ui/ErrorBoundary";
-import { functionClientAPI } from '@/app/network/functions';
 
 export default function CreateAStoryPage() {
   const params = useParams();
@@ -310,9 +309,9 @@ export default function CreateAStoryPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-4">Create a Story</h1>
+        <h1 className="text-3xl font-bold mb-4">{t.createStory.title}</h1>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          Create a personalized story for {kidDetails?.name}
+          {t.createStory.subtitle.replace("{name}", kidDetails?.name || "")}
         </p>
       </div>
 
@@ -335,7 +334,7 @@ export default function CreateAStoryPage() {
           />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="advantages">Advantages (Optional)</Label>
+              <Label htmlFor="advantages">{t.createStory.problemDescription.advantagesLabel}</Label>
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
                   {advantagesList.map((advantage, index) => (
@@ -355,19 +354,19 @@ export default function CreateAStoryPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     id="advantages"
-                    placeholder="e.g., Kid will feel calm and happy"
+                    placeholder={t.createStory.problemDescription.advantagesPlaceholder}
                     value={advantagesInput}
                     onChange={(e) => setAdvantagesInput(e.target.value)}
                     onKeyDown={handleAdvantageKeyDown}
                   />
                   <Button type="button" onClick={handleAddAdvantage} variant="secondary">
-                    Add
+                    {t.createStory.problemDescription.addButton}
                   </Button>
                 </div>
               </div>
             </div>
             <div>
-              <Label htmlFor="disadvantages">Disadvantages (Optional)</Label>
+              <Label htmlFor="disadvantages">{t.createStory.problemDescription.disadvantagesLabel}</Label>
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
                   {disadvantagesList.map((disadvantage, index) => (
@@ -387,13 +386,13 @@ export default function CreateAStoryPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     id="disadvantages"
-                    placeholder="e.g., Kid will feel anxious"
+                    placeholder={t.createStory.problemDescription.disadvantagesPlaceholder}
                     value={disadvantagesInput}
                     onChange={(e) => setDisadvantagesInput(e.target.value)}
                     onKeyDown={handleDisadvantageKeyDown}
                   />
                   <Button type="button" onClick={handleAddDisadvantage} variant="secondary">
-                    Add
+                    {t.createStory.problemDescription.addButton}
                   </Button>
                 </div>
               </div>
@@ -439,15 +438,15 @@ export default function CreateAStoryPage() {
             
             {state.selectedTitle && (
               <div className="space-y-2 pt-4 border-t">
-                <Label htmlFor="edit-title">Edit Selected Title (Optional)</Label>
+                <Label htmlFor="edit-title">{t.createStory.problemDescription.editTitleLabel}</Label>
                 <Input
                   id="edit-title"
                   value={state.selectedTitle}
                   onChange={(e) => dispatch({ type: 'SET_SELECTED_TITLE', payload: e.target.value })}
-                  placeholder="Customize your story title..."
+                  placeholder={t.createStory.problemDescription.editTitlePlaceholder}
                   className="text-lg font-medium"
                 />
-                <p className="text-sm text-gray-500">You can modify the title before generating your story.</p>
+                <p className="text-sm text-gray-500">{t.createStory.problemDescription.editTitleHint}</p>
               </div>
             )}
           </div>

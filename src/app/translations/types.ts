@@ -49,6 +49,8 @@ export interface Translation {
     };
   };
   createStory: {
+    title: string;
+    subtitle: string;
     progress: {
       problemDescription: string;
       selectTitle: string;
@@ -115,6 +117,14 @@ export interface Translation {
       continue: string;
       placeholder: string;
       verificationError: string;
+      advantagesLabel: string;
+      advantagesPlaceholder: string;
+      disadvantagesLabel: string;
+      disadvantagesPlaceholder: string;
+      addButton: string;
+      editTitleLabel: string;
+      editTitlePlaceholder: string;
+      editTitleHint: string;
     };
     choices: {
       title: string;

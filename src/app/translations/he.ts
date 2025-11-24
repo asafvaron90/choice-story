@@ -54,6 +54,8 @@ export const heTranslations: Translation = {
     }
   },
   createStory: {
+    title: "יצירת סיפור",
+    subtitle: "צור סיפור מותאם אישית עבור {name}",
     progress: {
       problemDescription: "הבעיה שאנחנו רוצים לפתור",
       selectTitle: "בחירת כותרת",
@@ -120,6 +122,14 @@ export const heTranslations: Translation = {
       placeholder: "{name} לא אוהב/ת לצחצח שיניים",
       verificationError: "נכשל באימות תיאור הבעיה. אנא נסו שוב.",
       continue: "המשך",
+      advantagesLabel: "יתרונות (אופציונלי)",
+      advantagesPlaceholder: "לדוגמה: הילד ירגיש רגוע ושמח",
+      disadvantagesLabel: "חסרונות (אופציונלי)",
+      disadvantagesPlaceholder: "לדוגמה: הילד ירגיש חרד",
+      addButton: "הוסף",
+      editTitleLabel: "ערוך את הכותרת שנבחרה (אופציונלי)",
+      editTitlePlaceholder: "התאם את כותרת הסיפור שלך...",
+      editTitleHint: "אתה יכול לשנות את הכותרת לפני יצירת הסיפור."
     },
     choices: {
       title: "בואו ניצור סיפור עם קצת קסם!",
