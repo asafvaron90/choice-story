@@ -1,6 +1,7 @@
 import { httpsCallable, FunctionsError } from 'firebase/functions';
 import { getAuth } from 'firebase/auth';
 import { functions } from '../../../../firebase';
+import { getFirebaseEnvironment } from '../../../config/build-config';
 
 /**
  * Function Client API
@@ -12,14 +13,17 @@ import { functions } from '../../../../firebase';
 // ============================================================================
 
 /**
- * Get the function name based on NODE_ENV
- * Returns dev{BaseName} if NODE_ENV is "development", otherwise returns baseName
+ * Get the function name based on Firebase environment
+ * Returns dev{BaseName} if environment is "development", otherwise returns baseName
+ * 
+ * This uses getFirebaseEnvironment() which checks:
+ * 1. NEXT_PUBLIC_FIREBASE_ENV environment variable
+ * 2. Hostname (staging domains use development functions)
+ * 3. NODE_ENV as fallback
  */
 function getFunctionName(baseName: string): string {
-  // Check NODE_ENV - Next.js makes this available at build time
-  // For client-side code, NODE_ENV is embedded during build
-  const nodeEnv = process.env.NODE_ENV || (typeof window !== 'undefined' ? 'production' : 'development');
-  if (nodeEnv === 'development') {
+  const environment = getFirebaseEnvironment();
+  if (environment === 'development') {
     // Convert to camelCase: generateStoryTitles -> devGenerateStoryTitles
     const capitalizedBase = baseName.charAt(0).toUpperCase() + baseName.slice(1);
     return `dev${capitalizedBase}`;

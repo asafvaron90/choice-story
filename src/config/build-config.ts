@@ -35,7 +35,8 @@ export function getFirebaseEnvironment(): 'development' | 'production' {
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
       // Staging domain should use development environment
-      if (hostname.includes('staging')) {
+      // Check for 'staging' or 'stage' in hostname (e.g., choicestory-b3135-stage.web.app)
+      if (hostname.includes('staging') || hostname.includes('stage')) {
         return 'development';
       }
       // Production domains
