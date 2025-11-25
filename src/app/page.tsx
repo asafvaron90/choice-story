@@ -10,35 +10,15 @@ export default function Home() {
   useEffect(() => {
     // Listen for postMessage events from the iframe
     const handleMessage = (event: MessageEvent) => {
+      // Log EVERYTHING coming in to see if we get *anything*
+      console.log("STEP 5: Parent received message from:", event.origin);
+
       // Log all messages for debugging (remove in production if needed)
-      // console.log('Received postMessage:', event.data, 'from origin:', event.origin);
-      
-      // Verify origin for security (adjust if needed)
-      // if (event.origin !== 'https://yaronloubaton.wixstudio.com') return;
-      
-      if (event.data && typeof event.data === 'object') {
-        // Handle navigation messages
-        if (event.data.type === 'navigate' && event.data.path) {
-          console.log('Navigating to:', event.data.path);
-          router.push(event.data.path);
-        }
-        // Handle direct path strings in object
-        else if (event.data.path) {
-          console.log('Navigating to path:', event.data.path);
-          router.push(event.data.path);
-        }
-        // Handle route property
-        else if (event.data.route) {
-          console.log('Navigating to route:', event.data.route);
-          router.push(event.data.route);
-        }
-      }
-      // Handle string messages that look like paths
-      else if (typeof event.data === 'string') {
-        if (event.data.startsWith('/')) {
-          console.log('Navigating to string path:', event.data);
-          router.push(event.data);
-        }
+      console.log('Received postMessage:', event.data);
+
+      if (event.data && event.data.action === "wix_button_clicked") {
+        console.log("Success! The Wix button was clicked.");
+        router.push('/dashboard');
       }
     };
 
