@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { useTranslation } from '@/app/hooks/useTranslation';
-import { Menu, LogIn, LogOut, LayoutDashboard, Info, MessageCircle } from 'lucide-react';
+import { Menu, LogIn, LogOut, LayoutDashboard, Info, MessageCircle, Images } from 'lucide-react';
 import { Drawer, DrawerTrigger, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/app/context/AuthContext';
@@ -57,6 +57,11 @@ export const Header = () => {
     setIsDrawerOpen(false);
   };
 
+  const goToGallery = () => {
+    router.push("/gallery");
+    setIsDrawerOpen(false);
+  };
+
   const isActive = (path: string) => {
     return currentPath === path;
   };
@@ -96,12 +101,20 @@ export const Header = () => {
               {currentUser ? t.nav.signOut : t.nav.signIn}
             </Button>
             {currentUser && (
-              <Button 
-                onClick={goToDashboard}
-                variant="default"
-              >
-                {t.nav.dashboard}
-              </Button>
+              <>
+                <Button 
+                  onClick={goToGallery}
+                  variant="ghost"
+                >
+                  {t.nav.gallery}
+                </Button>
+                <Button 
+                  onClick={goToDashboard}
+                  variant="default"
+                >
+                  {t.nav.dashboard}
+                </Button>
+              </>
             )}
           </div>
 
@@ -165,6 +178,18 @@ export const Header = () => {
                           )}>
                             {currentUser.email}
                           </div>
+                          <Button
+                            variant="ghost"
+                            onClick={goToGallery}
+                            className={cn(
+                              "w-full flex items-center gap-3 mb-2 justify-start",
+                              isActive('/gallery') ? "bg-primary/10 text-primary" : "hover:bg-gray-100",
+                              isRTL ? "flex-row-reverse" : "flex-row"
+                            )}
+                          >
+                            <Images className="h-5 w-5" />
+                            {t.nav.gallery}
+                          </Button>
                           <Button
                             variant="ghost"
                             onClick={goToDashboard}

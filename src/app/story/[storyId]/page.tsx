@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import ImageUrl from "@/app/components/common/ImageUrl";
 import { Story, StoryPage, PageType } from "@/models";
 import { motion, AnimatePresence } from "framer-motion";
 import { StoryApi } from "@/app/network/StoryApi";
+import { RestartStoryModal } from "@/app/components/modals/RestartStoryModal";
+import { LeaveStoryModal } from "@/app/components/modals/LeaveStoryModal";
+import { RotateCcw, Images } from "lucide-react";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 type ScreenCategory = "small" | "medium" | "large";
 
@@ -29,6 +33,21 @@ interface StoryReaderProps {
   onSelectFinalChoice: (choice: "good" | "bad") => void;
   surveyCompleted: boolean;
   screenCategory: ScreenCategory;
+  onGalleryClick: () => void;
+  onRestartClick: () => void;
+  translations: {
+    choiceQuestion: string;
+    theEnd: string;
+    whatIf: string;
+    congratsBothPaths: string;
+    whichPathWouldYouChoose: string;
+    surveyDescription: string;
+    thankYou: string;
+    choiceSaved: string;
+    readAgain: string;
+    startReading: string;
+    gallery: string;
+  };
 }
 
 // Helper function to detect if text contains Hebrew characters
@@ -38,7 +57,7 @@ const isHebrew = (text: string): boolean => {
 };
 
 // Components
-const LoadingStory = () => (
+const LoadingStory = ({ text }: { text: string }) => (
   <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
     <motion.div
       className="mb-6"
@@ -48,16 +67,16 @@ const LoadingStory = () => (
       <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full"></div>
     </motion.div>
     <h2 className="text-2xl font-bold text-purple-700">
-      Loading your story...
+      {text}
     </h2>
   </div>
 );
 
-const ErrorMessage = ({ message }: { message: string }) => (
+const ErrorMessage = ({ title, message }: { title: string; message: string }) => (
   <div className="container h-screen flex items-center justify-center mx-auto px-4 py-8 bg-gray-50">
       <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-xl w-full">
         <h2 className="text-2xl font-bold text-red-700 mb-2">
-          Oops! Something went wrong
+          {title}
       </h2>
       <p className="text-red-700">{message}</p>
     </div>
@@ -266,11 +285,13 @@ const ChoiceSelection = ({
   badChoice,
   onSelectChoice,
   screenCategory,
+  choiceQuestion,
 }: {
   goodChoice: StoryPage;
   badChoice: StoryPage;
   onSelectChoice: (choice: "good" | "bad") => void;
   screenCategory: ScreenCategory;
+  choiceQuestion: string;
 }) => {
   const isHebrewStory = isHebrew(goodChoice.storyText || badChoice.storyText);
   const [goodImageError, setGoodImageError] = useState(false);
@@ -309,8 +330,9 @@ const ChoiceSelection = ({
           textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
           fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
         }}
+        dir={isHebrewStory ? "rtl" : "ltr"}
       >
-        מה הבחירה שלך?
+        {choiceQuestion}
       </motion.h2>
 
       <div className={`grid ${gridColumnsClass} gap-8 max-w-6xl w-full`}>
@@ -424,12 +446,18 @@ const StoryEnd = ({
   hasReadBothPaths,
   story,
   screenCategory,
+  theEnd,
+  whatIf,
+  congratsBothPaths,
 }: {
   onTryOtherPath: () => void;
   otherChoice: StoryPage;
   hasReadBothPaths: boolean;
   story: Story;
   screenCategory: ScreenCategory;
+  theEnd: string;
+  whatIf: string;
+  congratsBothPaths: string;
 }) => {
   const isHebrewStory = isHebrew(story.title || story.problemDescription);
   const containerDirection =
@@ -496,7 +524,7 @@ const StoryEnd = ({
               }}
               dir={isHebrewStory ? "rtl" : "ltr"}
             >
-              {isHebrewStory ? "הסוף...?" : "The End!"}
+              {theEnd}
             </h2>
             {!hasReadBothPaths ? (
               <>
@@ -507,9 +535,7 @@ const StoryEnd = ({
                   }}
                   dir={isHebrewStory ? "rtl" : "ltr"}
                 >
-                  {isHebrewStory
-                    ? "רוצה לראות מה היה קורה אם..."
-                    : "What if..."}
+                  {whatIf}
                 </p>
                 {/* <p
                   className={`${detailTextClass} text-purple-900 mb-4`}
@@ -537,9 +563,7 @@ const StoryEnd = ({
                 style={{ fontFamily: '"Comic Sans MS", "Comic Sans", cursive' }}
                 dir={isHebrewStory ? "rtl" : "ltr"}
               >
-                {isHebrewStory
-                  ? "!כל הכבוד על קריאת שני המסלולים 🎉"
-                  : "Great job reading both paths! 🎉"}
+                {congratsBothPaths}
               </p>
             )}
           </div>
@@ -555,12 +579,16 @@ const EndOfStorySurvey = ({
   onSelectFinalChoice,
   story,
   screenCategory,
+  whichPathWouldYouChoose,
+  surveyDescription,
 }: {
   goodChoice: StoryPage;
   badChoice: StoryPage;
   onSelectFinalChoice: (choice: "good" | "bad") => void;
   story: Story;
   screenCategory: ScreenCategory;
+  whichPathWouldYouChoose: string;
+  surveyDescription: string;
 }) => {
   const [goodImageError, setGoodImageError] = useState(false);
   const [badImageError, setBadImageError] = useState(false);
@@ -601,9 +629,7 @@ const EndOfStorySurvey = ({
         }}
         dir={isHebrewStory ? "rtl" : "ltr"}
       >
-        {isHebrewStory
-          ? "באיזה דרך הייתם בוחרים?"
-          : "Which path would you choose?"}
+        {whichPathWouldYouChoose}
       </motion.h2>
 
       <p
@@ -611,9 +637,7 @@ const EndOfStorySurvey = ({
         style={{ fontFamily: '"Comic Sans MS", "Comic Sans", cursive' }}
         dir={isHebrewStory ? "rtl" : "ltr"}
       >
-        {isHebrewStory
-          ? "קראתם את שני המסלולים - עכשיו ספרו לנו איזה דרך הייתם בוחרים באמת!"
-          : "You've read both paths - now tell us which one you would actually choose!"}
+        {surveyDescription}
       </p>
 
       <div className={`grid ${gridColumnsClass} gap-8 max-w-6xl w-full`}>
@@ -733,6 +757,9 @@ const StoryReader = ({
   onSelectFinalChoice,
   surveyCompleted,
   screenCategory,
+  onGalleryClick,
+  onRestartClick,
+  translations,
 }: StoryReaderProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [overlayDimmed, setOverlayDimmed] = useState(false);
@@ -876,6 +903,8 @@ const StoryReader = ({
               onSelectFinalChoice={onSelectFinalChoice}
               story={story}
               screenCategory={screenCategory}
+              whichPathWouldYouChoose={translations.whichPathWouldYouChoose}
+              surveyDescription={translations.surveyDescription}
             />
           ) : surveyCompleted ? (
             <motion.div
@@ -896,9 +925,7 @@ const StoryReader = ({
                       : "ltr"
                   }
                 >
-                  {isHebrew(story.title || story.problemDescription)
-                    ? "תודה רבה 🎉"
-                    : "Thank you! 🎉"}
+                  {translations.thankYou}
                 </h2>
                 <p
                   className="text-2xl text-purple-600"
@@ -911,9 +938,7 @@ const StoryReader = ({
                       : "ltr"
                   }
                 >
-                  {isHebrew(story.title || story.problemDescription)
-                    ? "הבחירה שלך נשמרה"
-                    : "Your choice has been saved!"}
+                  {translations.choiceSaved}
                 </p>
 
                   <button
@@ -923,9 +948,7 @@ const StoryReader = ({
                     fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
                   }}
                 >
-                  {isHebrew(story.title || story.problemDescription)
-                    ? "אני רוצה לקרוא שוב"
-                    : "I want to read again"}
+                  {translations.readAgain}
                 </button>
               </div>
             </motion.div>
@@ -967,21 +990,7 @@ const StoryReader = ({
                     >
                       {story.title}
                     </h1>
-                    {story.problemDescription && (
-                      <p
-                        className="text-lg md:text-2xl text-gray-700 mb-4"
-                        style={{
-                          fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
-                        }}
-                        dir={
-                          isHebrew(story.title || story.problemDescription)
-                            ? "rtl"
-                            : "ltr"
-                        }
-                      >
-                        {story.problemDescription}
-                      </p>
-                    )}
+                  
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
@@ -991,9 +1000,7 @@ const StoryReader = ({
                         fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
                       }}
                     >
-                      {isHebrew(story.title || story.problemDescription)
-                        ? "התחל לקרוא"
-                        : "Start Reading"}
+                      {translations.startReading}
                     </motion.button>
                   </div>
                 </div>
@@ -1006,6 +1013,7 @@ const StoryReader = ({
               badChoice={badChoice!}
               onSelectChoice={onSelectChoice}
               screenCategory={screenCategory}
+              choiceQuestion={translations.choiceQuestion}
             />
           ) : isEndOfPath() ? (
             <StoryEnd
@@ -1017,6 +1025,9 @@ const StoryReader = ({
               hasReadBothPaths={readPaths.size === 2}
               story={story}
               screenCategory={screenCategory}
+              theEnd={translations.theEnd}
+              whatIf={translations.whatIf}
+              congratsBothPaths={translations.congratsBothPaths}
             />
           ) : (
             currentPageData && (
@@ -1108,32 +1119,28 @@ const StoryReader = ({
           </motion.button>
         </>
       )}
-      {/* Fullscreen button remains at top right */}
+      {/* Gallery button at top left */}
       {currentPage > 0 && (
         <div className="absolute top-4 left-4 z-20">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              if (story.id) {
-                localStorage.removeItem(`story-progress-${story.id}`);
-                window.location.reload();
-              }
-            }}
-            className="p-2 px-4 bg-white/20 backdrop-blur-sm break-keep opacity-60 hover:bg-white hover:opacity-100 text-purple-600 rounded-full shadow-sm transition-colors"
+            onClick={onGalleryClick}
+            className="p-3 bg-white/80 backdrop-blur-sm hover:bg-white text-purple-600 rounded-full shadow-lg transition-colors"
+            aria-label="Gallery"
           >
-            {isHebrew(story.title || story.problemDescription)
-              ? "התחל מחדש"
-              : "Start New"}
+            <Images className="h-6 w-6" />
           </motion.button>
         </div>
       )}
-      <div className="absolute top-4 right-4 z-20">
+      {/* Top-right buttons */}
+      <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={toggleFullscreen}
           className="p-3 bg-white/80 backdrop-blur-sm hover:bg-white text-purple-600 rounded-full shadow-lg transition-colors"
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
         >
           {isFullscreen ? (
             <svg
@@ -1167,6 +1174,18 @@ const StoryReader = ({
             </svg>
           )}
         </motion.button>
+        {/* Only show restart button after cover page and when story is not finished */}
+        {currentPage > 0 && !showSurvey && !surveyCompleted && (
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onRestartClick}
+            className="p-3 bg-white/80 backdrop-blur-sm hover:bg-white text-purple-600 rounded-full shadow-lg transition-colors"
+            aria-label="Restart story"
+          >
+            <RotateCcw className="h-6 w-6" />
+          </motion.button>
+        )}
       </div>
     </div>
   );
@@ -1174,6 +1193,8 @@ const StoryReader = ({
 
 export default function StoryReaderPage() {
   const { storyId } = useParams();
+  const router = useRouter();
+  const { t } = useLanguage();
   const [story, setStory] = useState<Story | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1186,6 +1207,8 @@ export default function StoryReaderPage() {
   const [surveyCompleted, setSurveyCompleted] = useState(false);
   const [screenCategory, setScreenCategory] = useState<ScreenCategory>("large");
   const [orientationBlocked, setOrientationBlocked] = useState(false);
+  const [showRestartModal, setShowRestartModal] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
 
   const shouldForceLandscape = screenCategory !== "large";
   const showOrientationOverlay = shouldForceLandscape && orientationBlocked;
@@ -1412,6 +1435,44 @@ export default function StoryReaderPage() {
     }
   };
 
+  const handleRestartStory = () => {
+    if (story?.id) {
+      localStorage.removeItem(`story-progress-${story.id}`);
+      window.location.reload();
+    }
+  };
+
+  const handleNavigateToGallery = () => {
+    // Clear story progress when leaving to gallery
+    if (story?.id) {
+      localStorage.removeItem(`story-progress-${story.id}`);
+    }
+    
+    if (story?.kidId) {
+      router.push(`/gallery?kidId=${story.kidId}`);
+    } else {
+      router.push('/gallery');
+    }
+  };
+
+  const handleGalleryClick = () => {
+    // If story is finished (survey completed or showing survey), navigate directly
+    if (showSurvey || surveyCompleted) {
+      handleNavigateToGallery();
+    } else {
+      setShowGalleryModal(true);
+    }
+  };
+
+  const handleRestartClick = () => {
+    // If story is finished (survey completed or showing survey), restart directly
+    if (showSurvey || surveyCompleted) {
+      handleRestartStory();
+    } else {
+      setShowRestartModal(true);
+    }
+  };
+
   // Check if user has read both paths and should see the survey
   useEffect(() => {
     if (readPaths.size === 2 && !surveyCompleted && !showSurvey) {
@@ -1422,9 +1483,9 @@ export default function StoryReaderPage() {
     }
   }, [readPaths, surveyCompleted, showSurvey]);
 
-  if (loading) return <LoadingStory />;
-  if (error) return <ErrorMessage message={error} />;
-  if (!story) return <ErrorMessage message="Story not found" />;
+  if (loading) return <LoadingStory text={t.storyReader.loading} />;
+  if (error) return <ErrorMessage title={t.storyReader.error} message={error} />;
+  if (!story) return <ErrorMessage title={t.storyReader.error} message="Story not found" />;
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between items-center bg-gray-50 p-2 sm:p-4">
@@ -1442,6 +1503,21 @@ export default function StoryReaderPage() {
           onSelectFinalChoice={handleSelectFinalChoice}
           surveyCompleted={surveyCompleted}
           screenCategory={screenCategory}
+          onGalleryClick={handleGalleryClick}
+          onRestartClick={handleRestartClick}
+          translations={{
+            choiceQuestion: t.storyReader.choiceQuestion,
+            theEnd: t.storyReader.theEnd,
+            whatIf: t.storyReader.whatIf,
+            congratsBothPaths: t.storyReader.congratsBothPaths,
+            whichPathWouldYouChoose: t.storyReader.whichPathWouldYouChoose,
+            surveyDescription: t.storyReader.surveyDescription,
+            thankYou: t.storyReader.thankYou,
+            choiceSaved: t.storyReader.choiceSaved,
+            readAgain: t.storyReader.readAgain,
+            startReading: t.storyReader.startReading,
+            gallery: t.storyReader.gallery,
+          }}
         />
       </div>
 
@@ -1477,14 +1553,26 @@ export default function StoryReaderPage() {
               strokeLinejoin="round"
             />
           </svg>
-          <h2 className="text-3xl font-bold">Rotate your device</h2>
+          <h2 className="text-3xl font-bold">{t.storyReader.rotateDevice}</h2>
           <p className="text-lg text-white/90 max-w-md">
-            For the best reading experience, please rotate your device to
-            landscape. This helps us keep the story immersive on smaller
-            screens.
+            {t.storyReader.rotateDeviceMessage}
           </p>
         </div>
       )}
+
+      {/* Restart Story Modal */}
+      <RestartStoryModal
+        isOpen={showRestartModal}
+        onOpenChange={setShowRestartModal}
+        onConfirm={handleRestartStory}
+      />
+
+      {/* Leave Story Modal */}
+      <LeaveStoryModal
+        isOpen={showGalleryModal}
+        onOpenChange={setShowGalleryModal}
+        onConfirm={handleNavigateToGallery}
+      />
     </div>
   );
 }

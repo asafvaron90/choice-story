@@ -10,7 +10,8 @@ export const heTranslations: Translation = {
     signIn: "התחבר",
     signOut: "התנתק",
     dashboard: "לוח בקרה",
-    account: "חשבון"
+    account: "חשבון",
+    gallery: "גלריה"
   },
   hero: {
     title: "צור סיפורים מותאמים אישית",
@@ -245,5 +246,52 @@ export const heTranslations: Translation = {
           return String(type);
       }
     }
+  },
+  gallery: {
+    title: "גלריה",
+    selectKid: "בחר ילד כדי לצפות בסיפורים שלו",
+    backToKids: "חזרה לילדים",
+    noStoriesYet: "עדיין אין סיפורים לילד הזה",
+    loginPrompt: "אנא התחבר כדי לצפות בגלריה שלך",
+    loginButton: "התחבר עם Google",
+    viewStories: "צפה בסיפורים"
+  },
+  storyActions: {
+    title: "אפשרויות סיפור",
+    read: "קרא סיפור",
+    copyLink: "העתק קישור",
+    share: "שתף סיפור",
+    linkCopiedTitle: "הקישור הועתק!",
+    linkCopiedDescription: "קישור הסיפור הועתק ללוח",
+    copyError: "נכשל בהעתקת הקישור"
+  },
+  restartStory: {
+    title: "להתחיל מחדש?",
+    message: "האם אתה בטוח שברצונך להתחיל מחדש? ההתקדמות שלך תאבד.",
+    cancel: "ביטול",
+    restart: "התחל מחדש"
+  },
+  leaveStory: {
+    title: "לעזוב את הסיפור?",
+    message: "האם אתה בטוח שברצונך לעזוב? ההתקדמות שלך תאבד.",
+    cancel: "להישאר",
+    leave: "לעזוב"
+  },
+  storyReader: {
+    loading: "טוען את הסיפור שלך",
+    error: "אופס! משהו השתבש",
+    choiceQuestion: "מה הבחירה שלך?",
+    theEnd: "הסוף...?",
+    whatIf: "רוצה לראות מה היה קורה אם...",
+    congratsBothPaths: "!כל הכבוד על קריאת שני המסלולים 🎉",
+    whichPathWouldYouChoose: "באיזה דרך הייתם בוחרים?",
+    surveyDescription: "קראתם את שני המסלולים - עכשיו ספרו לנו איזה דרך הייתם בוחרים באמת!",
+    thankYou: "תודה רבה 🎉",
+    choiceSaved: "הבחירה שלך נשמרה",
+    readAgain: "אני רוצה לקרוא שוב",
+    startReading: "התחל לקרוא",
+    gallery: "גלריה",
+    rotateDevice: "סובבו את המכשיר",
+    rotateDeviceMessage: "לחוויית קריאה הטובה ביותר, אנא סובבו את המכשיר למצב אופקי. זה עוזר לנו לשמור על הסיפור סוחף במסכים קטנים יותר."
   },
 }; 
