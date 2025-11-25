@@ -52,8 +52,10 @@ export default function GalleryPage() {
         const response = await StoryApi.getStoriesByKid(currentUser.uid, selectedKidId);
         if (response.success && response.data) {
           setStories(response.data.stories || []);
-        } else {
+        } else if (!response.success) {
           console.error("Failed to fetch stories:", response.error);
+          setStories([]);
+        } else {
           setStories([]);
         }
       } catch (error) {
