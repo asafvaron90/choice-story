@@ -14,7 +14,8 @@ import { useLanguage } from "@/app/context/LanguageContext";
 type ScreenCategory = "small" | "medium" | "large";
 
 const getScreenCategory = (width: number): ScreenCategory => {
-  if (width < 768) return "small";
+  // Mobile landscape can be up to ~900px width
+  if (width < 900) return "small";
   if (width < 1280) return "medium";
   return "large";
 };
@@ -104,14 +105,14 @@ const StoryPageComponent = ({
     screenCategory === "large"
       ? "40vh"
       : screenCategory === "medium"
-      ? "50vh"
-      : "60vh";
+      ? "45vh"
+      : "50vh";
   const overlayPadding =
     screenCategory === "large"
       ? "p-6 md:p-10"
       : screenCategory === "medium"
-      ? "p-6 md:p-8"
-      : "p-5";
+      ? "p-5 md:p-6"
+      : "p-3";
   const overlayWidthClass =
     screenCategory === "large"
       ? "max-w-5xl"
@@ -120,10 +121,10 @@ const StoryPageComponent = ({
       : "max-w-2xl";
   const textSizeClass =
     screenCategory === "large"
-      ? "text-2xl md:text-3xl"
+      ? "text-3xl md:text-4xl"
       : screenCategory === "medium"
       ? "text-2xl"
-      : "text-xl";
+      : "text-sm";
   const toggleButtonPosition =
     screenCategory === "large" ? "right-20" : "right-4";
 
@@ -179,7 +180,6 @@ const StoryPageComponent = ({
         style={{
           fontFamily: "inherit",
           color: "white",
-          fontSize: "1.3em",
           textShadow: "2px 2px 4px rgba(0,0,0,0.7), 0 0 5px rgba(0,0,0,0.5)",
         }}
       >
@@ -235,18 +235,25 @@ const StoryPageComponent = ({
         style={{ pointerEvents: "none" }}
       >
         <div
-          className={`m-4 ${overlayWidthClass} w-full backdrop-blur-md rounded-3xl ${overlayPadding} text-center overflow-y-auto`}
+          className={`m-4 ${overlayWidthClass} w-full backdrop-blur-md rounded-3xl ${overlayPadding} text-center flex items-center justify-center`}
           style={{
             maxHeight: overlayMaxHeight,
+            height: screenCategory === "small" ? overlayMaxHeight : "auto",
             fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
             pointerEvents: "auto",
+            overflow: "hidden",
           }}
         >
           <p
-            className={`${textSizeClass} font-bold leading-relaxed text-purple-900 storybook-font`}
+            className={`${textSizeClass} font-bold text-purple-900 storybook-font`}
             style={{
               textShadow: "2px 2px 4px rgba(0,0,0,0.08)",
               wordBreak: "break-word",
+              lineHeight: screenCategory === "small" ? "1.3" : screenCategory === "medium" ? "1.5" : "1.6",
+              display: screenCategory === "small" ? "-webkit-box" : "block",
+              WebkitLineClamp: screenCategory === "small" ? 8 : undefined,
+              WebkitBoxOrient: screenCategory === "small" ? "vertical" as const : undefined,
+              overflow: screenCategory === "small" ? "hidden" : "visible",
             }}
             dir="ltr"
           >
@@ -301,31 +308,36 @@ const ChoiceSelection = ({
 
   const headingClass =
     screenCategory === "large"
-      ? "text-4xl md:text-5xl"
-      : screenCategory === "medium"
-      ? "text-4xl"
-      : "text-3xl";
-  const choiceTextClass =
-    screenCategory === "large"
-      ? "text-2xl md:text-3xl"
+      ? "text-5xl md:text-6xl"
       : screenCategory === "medium"
       ? "text-2xl"
-      : "text-xl";
-  const gridColumnsClass =
-    screenCategory === "small" ? "grid-cols-1" : "grid-cols-2";
+      : "text-lg";
+  const choiceTextClass =
+    screenCategory === "large"
+      ? "text-3xl md:text-4xl"
+      : screenCategory === "medium"
+      ? "text-sm"
+      : "text-xs";
+  const gridColumnsClass = "grid-cols-2";
+  const containerPadding = screenCategory === "large" ? "p-6" : "p-2";
+  const headingMargin = screenCategory === "large" ? "mb-8" : "mb-2";
+  const gridGap = screenCategory === "large" ? "gap-8" : "gap-2";
+  const choicePadding = screenCategory === "large" ? "p-6" : "p-2";
+  const imageMargin = screenCategory === "large" ? "mb-6" : "mb-2";
+  const imageAspectRatio = screenCategory === "large" ? "aspect-[4/3]" : "aspect-[3/2]";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="w-full h-full flex flex-col items-center justify-center p-6"
+      className={`w-full h-full flex flex-col items-center justify-center ${containerPadding}`}
     >
       <motion.h2
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className={`${headingClass} font-bold text-center text-purple-800 mb-8`}
+        className={`${headingClass} font-bold text-center text-purple-800 ${headingMargin}`}
         style={{
           textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
           fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
@@ -335,20 +347,20 @@ const ChoiceSelection = ({
         {choiceQuestion}
       </motion.h2>
 
-      <div className={`grid ${gridColumnsClass} gap-8 max-w-6xl w-full`}>
+      <div className={`grid ${gridColumnsClass} ${gridGap} max-w-6xl w-full`}>
         <motion.button
-          whileHover={{ opacity: 1 }}
-          whileTap={{}}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => onSelectChoice("good")}
-          className="bg-green-50 hover:bg-green-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
+          className={`bg-green-50 hover:bg-green-100 ${screenCategory === "large" ? "rounded-3xl" : "rounded-2xl"} ${choicePadding} text-left transition-all shadow-xl hover:shadow-2xl`}
         >
-          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-6">
+          <div className={`relative ${imageAspectRatio} rounded-2xl overflow-hidden ${imageMargin}`}>
             {goodImageLoading && (
               <div className="absolute inset-0 bg-green-100 animate-pulse flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full"
+                  className={`${screenCategory === "large" ? "w-16 h-16 border-4" : "w-12 h-12 border-3"} border-green-500 border-t-transparent rounded-full`}
                 />
               </div>
             )}
@@ -362,8 +374,8 @@ const ChoiceSelection = ({
               fill
               className={`object-cover transition-opacity duration-300 ${
                 goodImageLoading ? "opacity-0" : "opacity-100"
-              } rounded-3xl m-2`}
-              sizes="(max-width: 768px) 100vw, 50vw"
+              } ${screenCategory === "large" ? "rounded-3xl m-2" : "rounded-xl m-1"}`}
+              sizes="(max-width: 768px) 50vw, 50vw"
               onError={() => {
                 setGoodImageError(true);
                 setGoodImageLoading(false);
@@ -375,11 +387,16 @@ const ChoiceSelection = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`${choiceTextClass} font-bold text-green-700 leading-relaxed`}
+            className={`${choiceTextClass} font-bold text-green-700`}
             style={{
               textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
               fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
               textAlign: isHebrewStory ? "right" : "left",
+              lineHeight: screenCategory === "large" ? "1.5" : "1.2",
+              display: screenCategory === "large" ? "block" : "-webkit-box",
+              WebkitLineClamp: screenCategory === "large" ? undefined : 2,
+              WebkitBoxOrient: screenCategory === "large" ? undefined : "vertical" as const,
+              overflow: screenCategory === "large" ? "visible" : "hidden",
             }}
           >
             {goodChoice.storyText}
@@ -387,18 +404,18 @@ const ChoiceSelection = ({
         </motion.button>
 
         <motion.button
-          whileHover={{ opacity: 1 }}
-          whileTap={{}}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => onSelectChoice("bad")}
-          className="bg-red-50 hover:bg-red-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
+          className={`bg-red-50 hover:bg-red-100 ${screenCategory === "large" ? "rounded-3xl" : "rounded-2xl"} ${choicePadding} text-left transition-all shadow-xl hover:shadow-2xl`}
         >
-          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-6">
+          <div className={`relative ${imageAspectRatio} rounded-2xl overflow-hidden ${imageMargin}`}>
             {badImageLoading && (
               <div className="absolute inset-0 bg-red-100 animate-pulse flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full"
+                  className={`${screenCategory === "large" ? "w-16 h-16 border-4" : "w-12 h-12 border-3"} border-red-500 border-t-transparent rounded-full`}
                 />
               </div>
             )}
@@ -412,8 +429,8 @@ const ChoiceSelection = ({
               fill
               className={`object-cover transition-opacity duration-300 ${
                 badImageLoading ? "opacity-0" : "opacity-100"
-              } rounded-3xl m-2`}
-              sizes="(max-width: 768px) 100vw, 50vw"
+              } ${screenCategory === "large" ? "rounded-3xl m-2" : "rounded-xl m-1"}`}
+              sizes="(max-width: 768px) 50vw, 50vw"
               onError={() => {
                 setBadImageError(true);
                 setBadImageLoading(false);
@@ -425,11 +442,16 @@ const ChoiceSelection = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`${choiceTextClass} font-bold text-red-700 leading-relaxed`}
+            className={`${choiceTextClass} font-bold text-red-700`}
             style={{
               textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
               fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
               textAlign: isHebrewStory ? "right" : "left",
+              lineHeight: screenCategory === "large" ? "1.5" : "1.2",
+              display: screenCategory === "large" ? "block" : "-webkit-box",
+              WebkitLineClamp: screenCategory === "large" ? undefined : 2,
+              WebkitBoxOrient: screenCategory === "large" ? undefined : "vertical" as const,
+              overflow: screenCategory === "large" ? "visible" : "hidden",
             }}
           >
             {badChoice.storyText}
@@ -472,18 +494,18 @@ const StoryEnd = ({
       : "w-1/2 p-8 flex flex-col items-center justify-center rounded-r-2xl";
   const headingClass =
     screenCategory === "large"
-      ? "text-4xl md:text-5xl"
+      ? "text-5xl md:text-6xl"
       : screenCategory === "medium"
       ? "text-4xl"
       : "text-3xl";
   const bodyTextClass =
     screenCategory === "large"
-      ? "text-2xl"
+      ? "text-3xl"
       : screenCategory === "medium"
       ? "text-2xl"
       : "text-xl";
   const detailTextClass = screenCategory === "small" ? "text-lg" : "text-xl";
-  const buttonTextClass = screenCategory === "small" ? "text-xl" : "text-2xl";
+  const buttonTextClass = screenCategory === "small" ? "text-xl" : "text-3xl";
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center">
@@ -598,31 +620,43 @@ const EndOfStorySurvey = ({
   const isHebrewStory = isHebrew(story.title || story.problemDescription);
   const choiceTextClass =
     screenCategory === "large"
-      ? "text-2xl md:text-3xl"
+      ? "text-3xl md:text-4xl"
       : screenCategory === "medium"
-      ? "text-2xl"
-      : "text-xl";
+      ? "text-sm"
+      : "text-xs";
   const headingClass =
     screenCategory === "large"
-      ? "text-4xl md:text-5xl"
+      ? "text-5xl md:text-6xl"
       : screenCategory === "medium"
-      ? "text-4xl"
-      : "text-3xl";
-  const gridColumnsClass =
-    screenCategory === "small" ? "grid-cols-1" : "grid-cols-2";
+      ? "text-2xl"
+      : "text-lg";
+  const descriptionTextClass =
+    screenCategory === "large"
+      ? "text-2xl"
+      : screenCategory === "medium"
+      ? "text-sm"
+      : "text-xs";
+  const gridColumnsClass = "grid-cols-2";
+  const containerPadding = screenCategory === "large" ? "p-6" : "p-2";
+  const headingMargin = screenCategory === "large" ? "mb-4" : "mb-1";
+  const descriptionMargin = screenCategory === "large" ? "mb-8" : "mb-2";
+  const gridGap = screenCategory === "large" ? "gap-8" : "gap-2";
+  const choicePadding = screenCategory === "large" ? "p-6" : "p-2";
+  const imageMargin = screenCategory === "large" ? "mb-6" : "mb-2";
+  const imageAspectRatio = screenCategory === "large" ? "aspect-[4/3]" : "aspect-[3/2]";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="w-full h-full flex flex-col items-center justify-center p-6"
+      className={`w-full h-full flex flex-col items-center justify-center ${containerPadding}`}
     >
       <motion.h2
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className={`${headingClass} font-bold text-center text-purple-800 mb-4`}
+        className={`${headingClass} font-bold text-center text-purple-800 ${headingMargin}`}
         style={{
           textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
           fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
@@ -633,27 +667,27 @@ const EndOfStorySurvey = ({
       </motion.h2>
 
       <p
-        className="text-xl text-purple-600 mb-8 text-center"
+        className={`${descriptionTextClass} text-purple-600 ${descriptionMargin} text-center`}
         style={{ fontFamily: '"Comic Sans MS", "Comic Sans", cursive' }}
         dir={isHebrewStory ? "rtl" : "ltr"}
       >
         {surveyDescription}
       </p>
 
-      <div className={`grid ${gridColumnsClass} gap-8 max-w-6xl w-full`}>
+      <div className={`grid ${gridColumnsClass} ${gridGap} max-w-6xl w-full`}>
         <motion.button
-          whileHover={{ scale: 1.02 }}
+          whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onSelectFinalChoice("good")}
-          className="bg-green-50 hover:bg-green-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
+          className={`bg-green-50 hover:bg-green-100 ${screenCategory === "large" ? "rounded-3xl" : "rounded-2xl"} ${choicePadding} text-left transition-all shadow-xl hover:shadow-2xl`}
         >
-          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-6">
+          <div className={`relative ${imageAspectRatio} rounded-2xl overflow-hidden ${imageMargin}`}>
             {goodImageLoading && (
               <div className="absolute inset-0 bg-green-100 animate-pulse flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full"
+                  className={`${screenCategory === "large" ? "w-16 h-16 border-4" : "w-12 h-12 border-3"} border-green-500 border-t-transparent rounded-full`}
                 />
               </div>
             )}
@@ -667,8 +701,8 @@ const EndOfStorySurvey = ({
               fill
               className={`object-cover transition-opacity duration-300 ${
                 goodImageLoading ? "opacity-0" : "opacity-100"
-              } rounded-3xl m-2`}
-              sizes="(max-width: 768px) 100vw, 50vw"
+              } ${screenCategory === "large" ? "rounded-3xl m-2" : "rounded-xl m-1"}`}
+              sizes="(max-width: 768px) 50vw, 50vw"
               onError={() => {
                 setGoodImageError(true);
                 setGoodImageLoading(false);
@@ -680,11 +714,16 @@ const EndOfStorySurvey = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`${choiceTextClass} font-bold text-green-700 leading-relaxed`}
+            className={`${choiceTextClass} font-bold text-green-700`}
             style={{
               textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
               fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
               textAlign: isHebrewStory ? "right" : "left",
+              lineHeight: screenCategory === "large" ? "1.5" : "1.2",
+              display: screenCategory === "large" ? "block" : "-webkit-box",
+              WebkitLineClamp: screenCategory === "large" ? undefined : 2,
+              WebkitBoxOrient: screenCategory === "large" ? undefined : "vertical" as const,
+              overflow: screenCategory === "large" ? "visible" : "hidden",
             }}
           >
             {goodChoice.storyText}
@@ -692,18 +731,18 @@ const EndOfStorySurvey = ({
         </motion.button>
 
         <motion.button
-          whileHover={{ scale: 1.02 }}
+          whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onSelectFinalChoice("bad")}
-          className="bg-red-50 hover:bg-red-100 rounded-3xl p-6 text-left transition-all shadow-xl hover:shadow-2xl"
+          className={`bg-red-50 hover:bg-red-100 ${screenCategory === "large" ? "rounded-3xl" : "rounded-2xl"} ${choicePadding} text-left transition-all shadow-xl hover:shadow-2xl`}
         >
-          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-6">
+          <div className={`relative ${imageAspectRatio} rounded-2xl overflow-hidden ${imageMargin}`}>
             {badImageLoading && (
               <div className="absolute inset-0 bg-red-100 animate-pulse flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full"
+                  className={`${screenCategory === "large" ? "w-16 h-16 border-4" : "w-12 h-12 border-3"} border-red-500 border-t-transparent rounded-full`}
                 />
               </div>
             )}
@@ -717,8 +756,8 @@ const EndOfStorySurvey = ({
               fill
               className={`object-cover transition-opacity duration-300 ${
                 badImageLoading ? "opacity-0" : "opacity-100"
-              } rounded-3xl m-2`}
-              sizes="(max-width: 768px) 100vw, 50vw"
+              } ${screenCategory === "large" ? "rounded-3xl m-2" : "rounded-xl m-1"}`}
+              sizes="(max-width: 768px) 50vw, 50vw"
               onError={() => {
                 setBadImageError(true);
                 setBadImageLoading(false);
@@ -730,11 +769,16 @@ const EndOfStorySurvey = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`${choiceTextClass} font-bold text-red-700 leading-relaxed`}
+            className={`${choiceTextClass} font-bold text-red-700`}
             style={{
               textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
               fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
               textAlign: isHebrewStory ? "right" : "left",
+              lineHeight: screenCategory === "large" ? "1.5" : "1.2",
+              display: screenCategory === "large" ? "block" : "-webkit-box",
+              WebkitLineClamp: screenCategory === "large" ? undefined : 2,
+              WebkitBoxOrient: screenCategory === "large" ? undefined : "vertical" as const,
+              overflow: screenCategory === "large" ? "visible" : "hidden",
             }}
           >
             {badChoice.storyText}
@@ -915,7 +959,7 @@ const StoryReader = ({
             >
               <div className="text-center p-8 bg-white/90 rounded-3xl shadow-2xl">
                 <h2
-                  className="text-4xl font-bold text-purple-800 mb-4"
+                  className={`${screenCategory === "large" ? "text-6xl" : screenCategory === "medium" ? "text-5xl" : "text-4xl"} font-bold text-purple-800 mb-4`}
                   style={{
                     fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
                   }}
@@ -928,7 +972,7 @@ const StoryReader = ({
                   {translations.thankYou}
                 </h2>
                 <p
-                  className="text-2xl text-purple-600"
+                  className={`${screenCategory === "large" ? "text-3xl" : screenCategory === "medium" ? "text-2xl" : "text-xl"} text-purple-600`}
                   style={{
                     fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
                   }}
@@ -943,7 +987,7 @@ const StoryReader = ({
 
                   <button
                   onClick={() => window.location.reload()}
-                  className="mt-6 px-6 py-4 mx-8 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full shadow-lg text-xl transition-colors"
+                  className={`mt-6 px-6 py-4 mx-8 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full shadow-lg ${screenCategory === "large" ? "text-2xl" : "text-xl"} transition-colors`}
                   style={{
                     fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
                   }}
@@ -977,7 +1021,7 @@ const StoryReader = ({
                 <div className="absolute left-0 right-10 bottom-0 z-10 flex justify-center">
                   <div className="m-4 mb-8 max-w-3xl w-full bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-6 md:p-10 text-center flex flex-col items-center gap-4">
                     <h1
-                      className="text-4xl md:text-5xl font-bold text-purple-800 mb-2"
+                      className={`${screenCategory === "large" ? "text-6xl" : screenCategory === "medium" ? "text-5xl" : "text-4xl"} font-bold text-purple-800 mb-2`}
                       style={{
                         fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
                         textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
@@ -995,7 +1039,7 @@ const StoryReader = ({
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={handleNextPage}
-                      className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full shadow-lg text-xl transition-colors"
+                      className={`px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full shadow-lg ${screenCategory === "large" ? "text-3xl" : screenCategory === "medium" ? "text-2xl" : "text-xl"} transition-colors`}
                       style={{
                         fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
                       }}
