@@ -53,6 +53,15 @@ export function getFirebaseEnvironment(): 'development' | 'production' {
   return 'development';
 }
 
+// Log the environment on initialization (only in browser, not during build)
+if (typeof window !== 'undefined') {
+  const env = getFirebaseEnvironment();
+  const collectionSuffix = `_${env}`;
+  console.log(`🔥 Firebase Environment: ${env.toUpperCase()}`);
+  console.log(`📦 Firestore Collections: *${collectionSuffix}`);
+  console.log(`   Examples: users${collectionSuffix}, stories_gen${collectionSuffix}, accounts${collectionSuffix}`);
+}
+
 // Base URLs configuration
 export const BASE_DOMAIN_LOCAL: string = process.env.NEXT_PUBLIC_BASE_URL_LOCAL || 'http://localhost:3000';
 export const BASE_DOMAIN_PROD: string = process.env.NEXT_PUBLIC_BASE_URL_PROD || 'https://choice-story.com';

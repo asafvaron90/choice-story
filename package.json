@@ -6,8 +6,8 @@
     "node": "22"
   },
   "scripts": {
-    "dev": "NODE_OPTIONS='--no-warnings' next dev",
-    "devprod": "NODE_ENV=production NODE_OPTIONS='--no-warnings' next dev",
+    "dev": "NEXT_PUBLIC_APP_ENV=development NODE_OPTIONS='--no-warnings' next dev",
+    "devprod": "NEXT_PUBLIC_APP_ENV=production NODE_ENV=production NODE_OPTIONS='--no-warnings' next dev",
     "build": "NODE_OPTIONS='--no-warnings' next build",
     "start": "NODE_OPTIONS='--no-warnings' next start",
     "lint": "next lint",
@@ -23,7 +23,8 @@
     "deploy:staging": "firebase use choicestory-b3135 && npm run build && npm run deploy:staging:functions && firebase deploy --only hosting:staging",
     "deploy:staging:hosting": "bash scripts/deploy-staging-hosting.sh",
     "deploy:staging:functions": "firebase use choicestory-b3135 && cd functions && bash scripts/deploy-staging.sh",
-    "verify:firebase": "node firebase-config-verification.js"
+    "verify:firebase": "node firebase-config-verification.js",
+    "verify:env": "node verify-dev-environment.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

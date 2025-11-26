@@ -74,8 +74,11 @@ export default function Dashboard() {
   useEffect(() => {
     if (firebaseUser && currentUser) {
       fetchUserAccount();
+    } else if (!authLoading) {
+      // If there's no user and auth is not loading, stop checking access
+      setCheckingAccess(false);
     }
-  }, [firebaseUser, currentUser, fetchUserAccount]);
+  }, [firebaseUser, currentUser, authLoading, fetchUserAccount]);
  
   // Fetch kids if they haven't been loaded yet and user is approved
   useEffect(() => {
@@ -172,8 +175,8 @@ export default function Dashboard() {
     }
   };
 
-  // Show loading while checking auth or access rights
-  if (authLoading || checkingAccess) {
+  // Show loading while checking auth or access rights (only if user exists)
+  if (authLoading || (checkingAccess && currentUser)) {
     return (
       <>
         <Header />
