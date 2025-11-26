@@ -531,6 +531,10 @@ class FirestoreServerService {
         photoURL: data?.photoURL,
         phoneNumber: data?.phoneNumber,
         metadata: data?.metadata,
+        role: data?.role,
+        access_rights: typeof data?.access_rights === 'string' ? data.access_rights : undefined,
+        kids_limit: typeof data?.kids_limit === 'number' ? data.kids_limit : undefined,
+        story_per_kid_limit: typeof data?.story_per_kid_limit === 'number' ? data.story_per_kid_limit : undefined,
         createAt: data?.createAt instanceof Date ? data.createAt : 
           (data?.createAt?.toDate ? data.createAt.toDate() : new Date()),
         lastUpdated: data?.lastUpdated instanceof Date ? data.lastUpdated : 
@@ -570,6 +574,10 @@ class FirestoreServerService {
         photoURL: data?.photoURL,
         phoneNumber: data?.phoneNumber,
         metadata: data?.metadata,
+        role: data?.role,
+        access_rights: typeof data?.access_rights === 'string' ? data.access_rights : undefined,
+        kids_limit: typeof data?.kids_limit === 'number' ? data.kids_limit : undefined,
+        story_per_kid_limit: typeof data?.story_per_kid_limit === 'number' ? data.story_per_kid_limit : undefined,
         createAt: data?.createAt instanceof Date ? data.createAt : 
           (data?.createAt?.toDate ? data.createAt.toDate() : new Date()),
         lastUpdated: data?.lastUpdated instanceof Date ? data.lastUpdated : 
@@ -695,6 +703,52 @@ class FirestoreServerService {
    */
   async createUserData(accountData: Account): Promise<Account> {
     return this.createAccountData(accountData);
+  }
+
+  /**
+   * Get all accounts from Firestore
+   * @returns Array of all accounts
+   */
+  async getAllAccounts(): Promise<Account[]> {
+    try {
+      this.ensureInitialized();
+      
+      const accountsRef = this.db.collection(this.getAccountsCollection());
+      const querySnapshot = await accountsRef.get();
+
+      if (querySnapshot.empty) {
+        console.log('[FIRESTORE_SERVER] No accounts found');
+        return [];
+      }
+
+      const accounts: Account[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const account: Account = {
+          uid: doc.id,
+          email: data?.email || '',
+          displayName: data?.displayName,
+          photoURL: data?.photoURL,
+          phoneNumber: data?.phoneNumber,
+          metadata: data?.metadata,
+          role: data?.role,
+          access_rights: typeof data?.access_rights === 'string' ? data.access_rights : undefined,
+          kids_limit: typeof data?.kids_limit === 'number' ? data.kids_limit : undefined,
+          story_per_kid_limit: typeof data?.story_per_kid_limit === 'number' ? data.story_per_kid_limit : undefined,
+          createAt: data?.createAt instanceof Date ? data.createAt : 
+            (data?.createAt?.toDate ? data.createAt.toDate() : new Date()),
+          lastUpdated: data?.lastUpdated instanceof Date ? data.lastUpdated : 
+            (data?.lastUpdated?.toDate ? data.lastUpdated.toDate() : new Date()),
+        };
+        accounts.push(account);
+      });
+
+      console.log(`[FIRESTORE_SERVER] Successfully retrieved ${accounts.length} accounts`);
+      return accounts;
+    } catch (error) {
+      console.error('[FIRESTORE_SERVER] Error fetching all accounts:', error);
+      throw error;
+    }
   }
 }
 
