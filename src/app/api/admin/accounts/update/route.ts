@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest) {
           span.setAttribute("error_type", "forbidden_no_role");
           logger.warn({ 
             message: 'Access denied - user has no role',
-            uid: authenticatedUid 
+            context: { uid: authenticatedUid }
           });
           return NextResponse.json({
             success: false,
@@ -76,12 +76,12 @@ export async function PATCH(req: NextRequest) {
         console.log(`[/api/admin/accounts/update] Updating account ${uid}`);
         logger.info({ 
           message: 'Updating account role, access_rights, and limits',
-          targetUid: uid,
+          context: { targetUid: uid,
           role,
           access_rights,
           kids_limit,
           story_per_kid_limit,
-          requestedBy: authenticatedUid 
+          requestedBy: authenticatedUid },
         });
 
         // Get the account
@@ -108,7 +108,7 @@ export async function PATCH(req: NextRequest) {
 
         logger.info({ 
           message: 'Successfully updated account',
-          uid 
+          context: { uid: uid },
         });
 
         return NextResponse.json({

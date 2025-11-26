@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
           span.setAttribute("error_type", "forbidden_no_role");
           logger.warn({ 
             message: 'Access denied - user has no role',
-            uid: authenticatedUid 
+            context: { uid: authenticatedUid }
           });
           return NextResponse.json({
             success: false,
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
         console.log(`[/api/admin/accounts] User ${authenticatedUid} with role ${userAccount.role} fetching all accounts`);
         logger.info({ 
           message: 'Fetching all accounts',
-          requestedBy: authenticatedUid 
+          context: { requestedBy: authenticatedUid }
         });
         
         // Fetch all accounts from Firestore
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
         span.setAttribute("accounts_count", accounts.length);
         logger.info({ 
           message: 'Successfully retrieved accounts',
-          count: accounts.length 
+          context: { count: accounts.length }
         });
 
         return NextResponse.json({
