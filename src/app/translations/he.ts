@@ -11,7 +11,8 @@ export const heTranslations: Translation = {
     signOut: "התנתק",
     dashboard: "לוח בקרה",
     account: "חשבון",
-    gallery: "גלריה"
+    gallery: "גלריה",
+    adminPanel: "פאנל ניהול"
   },
   hero: {
     title: "צור סיפורים מותאמים אישית",
