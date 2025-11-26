@@ -12,6 +12,7 @@ export interface Translation {
     dashboard: string;
     account: string;
     gallery: string;
+    adminPanel: string;
   };
   hero: {
     title: string;
