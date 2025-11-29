@@ -29,6 +29,7 @@ import ErrorMessage from "@/app/components/ui/ErrorMessage";
 
 import { StoryStatus, Story, StoryPage, PageType } from "@/models";
 import { ErrorBoundary as _ErrorBoundary } from "@/app/components/ui/ErrorBoundary";
+import useAccountState from "@/app/state/account-state";
 
 export default function CreateAStoryPage() {
   const params = useParams();
@@ -36,6 +37,7 @@ export default function CreateAStoryPage() {
   const kidId = params.kidId as string;
   const { t } = useTranslation();
   const { currentUser, loading: authLoading } = useAuth();
+  const { accountData } = useAccountState();
 
   const [advantagesInput, setAdvantagesInput] = useState("");
   const [disadvantagesInput, setDisadvantagesInput] = useState("");
@@ -162,6 +164,24 @@ export default function CreateAStoryPage() {
       router.push('/login');
     }
   }, [authLoading, currentUser, router]);
+
+  // Story limit check
+  useEffect(() => {
+    // Only check after kid details and account data are loaded
+    if (!kidLoading && kidDetails && accountData) {
+      const storiesCreated = kidDetails.stories_created || 0;
+      const limit = accountData.story_per_kid_limit;
+
+      if (limit !== undefined && storiesCreated >= limit) {
+        toast({
+          title: "Story Limit Reached",
+          description: `You have reached the maximum of ${limit} stories for this kid. Delete some stories to create new ones.`,
+          variant: "destructive",
+        });
+        router.push('/dashboard');
+      }
+    }
+  }, [kidDetails, accountData, kidLoading, router]);
 
   // Loading states
   if (authLoading || kidLoading) {

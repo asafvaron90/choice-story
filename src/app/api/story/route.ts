@@ -102,6 +102,14 @@ export async function POST(req: NextRequest) {
         throw new Error('Failed to save story to database');
       }
       
+      // Increment the stories_created counter for the kid
+      try {
+        await firestoreServerService.incrementStoriesCreated(validatedData.kidId);
+        console.log('[/api/story] Incremented stories_created counter for kid:', validatedData.kidId);
+      } catch (incrementError) {
+        // Log the error but don't fail the story creation
+        console.error('[/api/story] Failed to increment stories_created counter:', incrementError);
+      }
       
       console.log('[/api/story] Story saved successfully:', {
         id: savedStory.id,

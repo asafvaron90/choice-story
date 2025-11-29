@@ -373,13 +373,15 @@ export const UserCard: React.FC<UserCardProps> = memo(({
 
   const handleCreateStory = useCallback(() => {
     // Check if user has reached their story per kid limit
-    if (userAccountData?.story_per_kid_limit !== undefined && stories.length >= userAccountData.story_per_kid_limit) {
+    // Use stories_created (total created including deleted) instead of current story count
+    const storiesCreatedCount = kid.stories_created || 0;
+    if (userAccountData?.story_per_kid_limit !== undefined && storiesCreatedCount >= userAccountData.story_per_kid_limit) {
       // Show custom dialog instead of alert
       setShowStoryLimitDialog(true);
       return;
     }
     router.push(`/create-a-story/${kid.id}`);
-  }, [router, kid, userAccountData, stories.length]);
+  }, [router, kid, userAccountData]);
 
   const handleViewStory = useCallback((storyId: string) => {
     router.push(`/stories/${storyId}`);
