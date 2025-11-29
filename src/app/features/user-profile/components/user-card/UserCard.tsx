@@ -5,7 +5,6 @@ import { KidDetails, Story, StoryStatus, Account } from "@/models";
 import { useAuth } from '@/app/context/AuthContext';
 import { useAvatarHandling } from '../../hooks/useAvatarHandling';
 import { Button } from "@/components/ui/button";
-import { Trash2, RefreshCw, Image as ImageIcon } from "lucide-react";
 import ImageUrl from "@/app/components/common/ImageUrl";
 import {
   Dialog,
@@ -16,14 +15,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { KidApi, ImageGenerationApi } from '@/app/network';
-import { QuickGenerateDialog } from '@/app/features/story/components/quick-generator/QuickGenerateDialog';
 import useStoryOperations from './hooks/useStoryOperations';
 import { getImageUrl } from '@/app/utils/imagePlaceholder';
 import { StoryImage } from '@/app/features/story/components/story/StoryImage';
 import { PLACEHOLDER_IMAGE } from '@/app/utils/imagePlaceholder';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { FirebaseError } from 'firebase/app';
-import { getFirebaseEnvironment } from '@/config/build-config';
 
 
 // Types 
@@ -265,13 +262,11 @@ const AvatarDialog: FC<{
 // Main component
 export const UserCard: React.FC<UserCardProps> = memo(({
   kid,
-  onDelete,
+  onDelete: _onDelete,
   onEdit,
   userAccountData,
 }) => {
   // Component state
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showStoryLimitDialog, setShowStoryLimitDialog] = useState(false);
   
@@ -286,8 +281,7 @@ export const UserCard: React.FC<UserCardProps> = memo(({
   const { 
     stories, 
     isLoading, 
-    fetchStories,
-    deleteStory  } = useStoryOperations(kid.id, currentUser?.uid);
+    fetchStories } = useStoryOperations(kid.id, currentUser?.uid);
 
 
   // Handler for selecting an avatar
@@ -333,43 +327,6 @@ export const UserCard: React.FC<UserCardProps> = memo(({
       throw error; // Re-throw so the dialog can handle the error state
     }
   }, [kid, currentUser, onEdit, t]);
-
-  const handleDelete = useCallback(async () => {
-    if (!confirm(t.userCard.deleteConfirmation.replace('{name}', kid.name || ''))) return;
-    
-    setIsDeleting(true);
-    try {
-      // Check if user is authenticated
-      if (!currentUser) {
-        throw new Error(t.userCard.userNotAuthenticated);
-      }
-      
-      // Use KidApi to delete kid - use kid.id directly instead of kidId
-      const response = await KidApi.deleteKid(kid.id);
-      
-      if (!response.success) {
-        throw new Error(response.error || t.userCard.failedToDeleteKid);
-      }
-      
-      toast({
-        title: t.userCard.toasts.deleteSuccessTitle,
-        description: t.userCard.toasts.deleteSuccessDescription.replace('{name}', kid.name || ''),
-      });
-      
-      // Call onDelete callback if provided - use kid.id
-      if (onDelete) onDelete(kid.id);
-      
-    } catch (error) {
-      console.error('Error deleting kid:', error);
-      toast({
-        title: t.userCard.toasts.deleteErrorTitle,
-        description: t.userCard.toasts.deleteErrorDescription,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [currentUser, kid, onDelete, t]);
 
   const handleCreateStory = useCallback(() => {
     // Check if user has reached their story per kid limit
@@ -493,21 +450,6 @@ export const UserCard: React.FC<UserCardProps> = memo(({
               isGenerating={isGenerating}
               onGeneratingChange={setIsGenerating}
             /> */}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="flex items-center gap-1 text-red-500 border-red-200 hover:bg-red-50"
-            >
-              {isDeleting ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              <span>{t.userCard.delete}</span>
-            </Button>
           </div>
         </div>
       </div>
@@ -591,17 +533,6 @@ export const UserCard: React.FC<UserCardProps> = memo(({
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                     </div>
                   )}
-                  {/* Delete button overlay */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteStory(story.id);
-                    }}
-                    className="absolute top-1 right-1 p-1 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
-                    aria-label={t.userCard.deleteStory}
-                  >
-                    <Trash2 className="h-3 w-3 text-white" />
-                  </button>
                 </div>
               </div>
             ))}
