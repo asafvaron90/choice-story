@@ -182,7 +182,7 @@ export default function Dashboard() {
         <Header />
         <div className="flex flex-col items-center justify-center min-h-screen pt-16">
           <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t.common.loading}</p>
         </div>
       </>
     );
@@ -193,12 +193,12 @@ export default function Dashboard() {
       <>
         <Header />
         <div className="flex flex-col items-center min-h-screen pt-16">
-          <h1 className="text-2xl font-bold mb-4">Please login with Google to view your dashboard</h1>
+          <h1 className="text-2xl font-bold mb-4">{t.auth.loginRequired}</h1>
           <Button 
             onClick={googleSignIn}
             className="rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all px-8 py-6 text-lg"
           >
-            Login with Google
+            {t.auth.loginButton}
           </Button>
         </div>
       </>
@@ -225,15 +225,15 @@ export default function Dashboard() {
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
               />
             </svg>
-            <h1 className="text-2xl font-bold text-yellow-800 mb-3">Pending Approval</h1>
+            <h1 className="text-2xl font-bold text-yellow-800 mb-3">{t.auth.pendingApproval}</h1>
             <p className="text-yellow-700 mb-6">
-              Our team will approve your access shortly. Feel free to contact your agent for more information.
+              {t.auth.pendingApprovalMessage}
             </p>
             <div className="mt-4 p-4 bg-gray-100 rounded text-left text-sm">
-              <p className="font-semibold mb-2">Account Status:</p>
-              <p className="text-gray-700">Email: {userAccountData?.email || currentUser?.email}</p>
+              <p className="font-semibold mb-2">{t.auth.accountStatus}</p>
+              <p className="text-gray-700">{t.auth.email} {userAccountData?.email || currentUser?.email}</p>
               <p className="text-gray-700">
-                Access Rights: {userAccountData?.access_rights || <span className="italic">awaiting approval</span>}
+                {t.auth.accessRights} {userAccountData?.access_rights || <span className="italic">{t.auth.awaitingApproval}</span>}
               </p>
             </div>
           </div>
@@ -380,12 +380,12 @@ export default function Dashboard() {
                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
                 />
               </svg>
-              Kids Limit Reached
+              {t.auth.kidsLimitReached}
             </DialogTitle>
             <DialogDescription className="pt-4 text-base">
-              You have reached your kids limit of <span className="font-semibold text-gray-900">{userAccountData?.kids_limit}</span>.
+              {t.auth.kidsLimitMessage.replace('{limit}', String(userAccountData?.kids_limit))}
               <br /><br />
-              Please contact your agent to increase your limit.
+              {t.auth.contactAgent}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-end">
@@ -394,7 +394,7 @@ export default function Dashboard() {
               onClick={() => setShowKidsLimitDialog(false)}
               className="rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
             >
-              OK
+              {t.common.ok}
             </Button>
           </DialogFooter>
         </DialogContent>

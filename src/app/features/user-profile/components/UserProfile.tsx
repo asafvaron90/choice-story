@@ -3,8 +3,11 @@
 import { useEffect } from 'react';
 import useUserData from '@/app/hooks/useUserData';
 import ImageUrl from '@/app/components/common/ImageUrl';
+import { useTranslation } from '@/app/hooks/useTranslation';
 
 export const UserProfile = () => {
+  const { t } = useTranslation();
+  
   // Get all user-related data and actions from our custom hook
   const {
     user,
@@ -32,8 +35,8 @@ export const UserProfile = () => {
   if (!user) {
     return (
       <div className="p-4">
-        <h2 className="text-xl font-bold">You are not logged in</h2>
-        <p>Please log in to view your profile</p>
+        <h2 className="text-xl font-bold">{t.auth.loggedOutMessage}</h2>
+        <p>{t.auth.loggedOutDescription}</p>
       </div>
     );
   }
@@ -42,7 +45,7 @@ export const UserProfile = () => {
   if (isLoading) {
     return (
       <div className="p-4">
-        <h2 className="text-xl font-bold">Loading profile...</h2>
+        <h2 className="text-xl font-bold">{t.common.loadingProfile}</h2>
       </div>
     );
   }
@@ -51,13 +54,13 @@ export const UserProfile = () => {
   if (error) {
     return (
       <div className="p-4">
-        <h2 className="text-xl font-bold">Error loading profile</h2>
+        <h2 className="text-xl font-bold">{t.userProfile.errorLoadingProfile}</h2>
         <p className="text-red-500">{error}</p>
         <button 
           className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
           onClick={() => refreshUserData?.()}
         >
-          Try Again
+          {t.common.tryAgain}
         </button>
       </div>
     );
@@ -83,12 +86,12 @@ export const UserProfile = () => {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">User Profile</h2>
+        <h2 className="text-2xl font-bold">{t.userProfile.userProfile}</h2>
         <button 
           className="px-4 py-2 bg-blue-500 text-white rounded"
           onClick={handleRefresh}
         >
-          Refresh Data
+          {t.userProfile.refreshData}
         </button>
       </div>
 
@@ -107,7 +110,7 @@ export const UserProfile = () => {
             </div>
           )}
           <div>
-            <h3 className="text-xl font-semibold">{userData?.displayName || 'No Name'}</h3>
+            <h3 className="text-xl font-semibold">{userData?.displayName || t.userProfile.noName}</h3>
             <p className="text-gray-600">{userData?.email}</p>
           </div>
         </div>
@@ -116,19 +119,19 @@ export const UserProfile = () => {
             className="px-3 py-1 bg-gray-200 text-gray-800 rounded"
             onClick={() => handleUpdateName(prompt('Enter new name:') || '')}
           >
-            Edit Name
+            {t.userProfile.editName}
           </button>
         </div>
       </div>
 
       {/* Kids section */}
       <div className="bg-white p-4 rounded shadow">
-        <h3 className="text-xl font-semibold mb-2">Your Kids</h3>
+        <h3 className="text-xl font-semibold mb-2">{t.userProfile.yourKids}</h3>
         
         {!kidsLoaded ? (
-          <p>Loading kids data...</p>
+          <p>{t.common.loadingKidsData}</p>
         ) : !hasKids ? (
-          <p>You haven't added any kids yet.</p>
+          <p>{t.userProfile.youHaventAddedKids}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {kids.map(kid => (
@@ -146,13 +149,13 @@ export const UserProfile = () => {
                   <div>
                     <h4 className="font-medium">{kid.name}</h4>
                     <p className="text-sm text-gray-600">
-                      {kid.age} years • {kid.gender}
+                      {kid.age} {t.common.years} • {kid.gender}
                     </p>
                   </div>
                 </div>
                 <div className="mt-2">
                   <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    {kid.stories?.length} {kid.stories?.length === 1 ? 'story' : 'stories'}
+                    {kid.stories?.length} {kid.stories?.length === 1 ? t.common.story : t.common.storiesPlural}
                   </span>
                 </div>
               </div>

@@ -139,16 +139,16 @@ export default function StoryPageComponent() {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       toast({
-        title: "Link Copied!",
-        description: "Story link has been copied to clipboard",
+        title: t.storyPage.linkCopiedToastTitle,
+        description: t.storyPage.linkCopiedToastDescription,
         variant: "default",
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy link:", error);
       toast({
-        title: "Error",
-        description: "Failed to copy link",
+        title: t.common.error,
+        description: t.storyPage.failedToCopyLink,
         variant: "destructive",
       });
     }
@@ -201,8 +201,8 @@ export default function StoryPageComponent() {
 
       // Show success message
       toast({
-        title: "Success",
-        description: "Story saved successfully",
+        title: t.common.success,
+        description: t.storyPage.storySavedSuccessfully,
         variant: "default",
       });
     } catch (error) {
@@ -210,9 +210,9 @@ export default function StoryPageComponent() {
 
       // Show error message
       toast({
-        title: "Error",
+        title: t.common.error,
         description:
-          error instanceof Error ? error.message : "Failed to save story",
+          error instanceof Error ? error.message : t.storyPage.failedToSaveStory,
         variant: "destructive",
       });
     }
@@ -278,7 +278,7 @@ export default function StoryPageComponent() {
               className="px-6 py-3 rounded-md bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!story.pages.some((page) => !page.selectedImageUrl)}
             >
-              לחצו לייצור תמונות חסרות ✨
+              {t.storyPage.generateMissingImages}
             </button>
           </div>
         )}

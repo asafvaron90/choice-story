@@ -6,12 +6,14 @@ import { RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 import * as Sentry from "@sentry/nextjs";
 import { Header } from '@/app/components/common/Header';
 import { useAuth } from '@/app/context/AuthContext';
+import { useTranslation } from '@/app/hooks/useTranslation';
 import { Account } from '@/models';
 
 type SortField = 'displayName' | 'email' | 'role' | 'access_rights' | 'kids_limit' | 'story_per_kid_limit' | 'createAt';
 type SortDirection = 'asc' | 'desc';
 
 export default function AdminAccountsPage() {
+  const { t } = useTranslation();
   const { currentUser, firebaseUser, loading: authLoading } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -274,7 +276,7 @@ export default function AdminAccountsPage() {
         <Header />
         <div className="flex flex-col items-center justify-center min-h-screen pt-16">
           <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t.common.loading}</p>
         </div>
       </>
     );
@@ -286,12 +288,12 @@ export default function AdminAccountsPage() {
       <>
         <Header />
         <div className="flex flex-col items-center min-h-screen pt-16">
-          <h1 className="text-2xl font-bold mb-4">Please login to access admin panel</h1>
+          <h1 className="text-2xl font-bold mb-4">{t.auth.loginRequiredShort}</h1>
           <Button 
             onClick={() => window.location.href = '/dashboard'}
             className="rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all px-8 py-6 text-lg"
           >
-            Go to Dashboard
+            {t.notFound.goToDashboard}
           </Button>
         </div>
       </>

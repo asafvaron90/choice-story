@@ -5,6 +5,7 @@ import { StoryImageType } from '@/app/utils/storyImageType';
 import { storage } from '@choiceStoryWeb/firebase';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { Story, StoryStatus, PageType } from '@/models';
+import { useTranslation } from '@/app/hooks/useTranslation';
 
 interface StoryItemProps {
   story: Story;
@@ -25,6 +26,7 @@ const StoryItem: FC<StoryItemProps> = ({
   onViewStory, 
   generationProgress 
 }) => {
+  const { t } = useTranslation();
   const { status, title, id, pages } = story;
   const coverPage = pages.find(page => page.pageType === PageType.COVER);
   const coverImageUrl = coverPage?.selectedImageUrl;
@@ -40,8 +42,8 @@ const StoryItem: FC<StoryItemProps> = ({
   const percentage = generationProgress?.percentage || getPercentageFromStatus(status?.toString() || '');
   const statusMessage = generationProgress?.message || 
                       (status?.toString().startsWith('progress_') ? 
-                      `Generating (${percentage}%)` : 
-                      `Generating "${title}"`);
+                      `${t.common.generating} (${percentage}%)` : 
+                      `${t.common.generating} "${title}"`);
   
   // Use coverImageUrl from the cover page
   useEffect(() => {
@@ -86,7 +88,7 @@ const StoryItem: FC<StoryItemProps> = ({
         {isGenerating ? (
           <div className="w-full aspect-square bg-gray-50 flex flex-col items-center justify-center p-3">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-1"></div>
-            <p className="text-xs text-gray-600 text-center mb-1 line-clamp-1">Generating &quot;{title}&quot;</p>
+            <p className="text-xs text-gray-600 text-center mb-1 line-clamp-1">{t.common.generating} &quot;{title}&quot;</p>
             <div className="w-full px-2">
               <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden">
                 <div 
@@ -116,7 +118,7 @@ const StoryItem: FC<StoryItemProps> = ({
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelete(id); }}
                   className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 opacity-0 group-hover:opacity-100 hover:!bg-red-500 text-gray-700 hover:text-white backdrop-blur-sm shadow-sm transition-all duration-200 z-20"
-                  title="Delete story"
+                  title={t.common.deleteStory}
                 >
                   <Trash2 size={14} />
                 </button>
