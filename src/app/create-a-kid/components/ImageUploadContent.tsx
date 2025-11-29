@@ -311,7 +311,7 @@ export default function ImageUploadContent() {
     return (
       <div className="mb-6">
         <h3 className="text-xl font-semibold mb-2 text-center">
-          {imageRequirements?.isValid ? 'Image matches requirements' : (imageRequirements ? 'Image doesn\'t match requirements' : 'Image matches requirements')}
+          {imageRequirements?.isValid ? t.validation.matchesRequirement : (imageRequirements ? t.validation.needsAdjustment : t.validation.matchesRequirement)}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {imageExamples.map((example: ExampleItem, index: number) => {
@@ -494,9 +494,8 @@ export default function ImageUploadContent() {
     
     if (imageRequirements?.isValid === true) {
       return (
-        <div className="text-center text-sm text-green-600 font-medium mt-2">
-          Image validation successful!
-        </div>
+        <>
+        </>
       );
     }
     

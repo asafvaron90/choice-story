@@ -69,3 +69,6 @@ Thumbs.db
 
 #cache
 .next/cache
+
+# Generated files
+functions/src/functions/generated-dev-functions.ts

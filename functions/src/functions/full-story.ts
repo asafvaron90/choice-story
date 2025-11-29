@@ -103,6 +103,15 @@ export const generateFullStory = functions.runWith({
       const storyId = newStoryDoc.id;
       functions.logger.info("Created story with auto-generated ID:", storyId);
       
+      // Increment the stories_created counter for the kid
+      try {
+        await dbHelper.incrementStoriesCreated(kidId);
+        functions.logger.info("Incremented stories_created counter for kid:", kidId);
+      } catch (incrementError) {
+        // Log the error but don't fail the story creation
+        functions.logger.error("Failed to increment stories_created counter:", incrementError);
+      }
+      
       const storyDocRef = dbHelper.getStoryRef(storyId);
 
       // Helper function to update story status

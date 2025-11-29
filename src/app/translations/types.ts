@@ -146,6 +146,16 @@ export interface Translation {
       saving: string;
       finish: string;
     };
+    buttons: {
+      generateStoryTitles: string;
+      generateStory: string;
+      continueToPreview: string;
+      saveStory: string;
+      continue: string;
+      generatingTitles: string;
+      generatingStory: string;
+      savingStory: string;
+    };
   };
   dashboard: {
     title: string;
@@ -272,6 +282,66 @@ export interface Translation {
     gallery: string;
     rotateDevice: string;
     rotateDeviceMessage: string;
+  };
+  common: {
+    loading: string;
+    loadingProfile: string;
+    loadingKidsData: string;
+    error: string;
+    success: string;
+    tryAgain: string;
+    ok: string;
+    navigationMenu: string;
+    years: string;
+    story: string;
+    storiesPlural: string;
+    generating: string;
+    deleteStory: string;
+  };
+  auth: {
+    loginRequired: string;
+    loginRequiredShort: string;
+    loginButton: string;
+    loggedOutMessage: string;
+    loggedOutDescription: string;
+    pendingApproval: string;
+    pendingApprovalMessage: string;
+    accountStatus: string;
+    email: string;
+    accessRights: string;
+    awaitingApproval: string;
+    kidsLimitReached: string;
+    kidsLimitMessage: string;
+    contactAgent: string;
+  };
+  notFound: {
+    pageNotFound: string;
+    pageNotFoundMessage: string;
+    goBackHome: string;
+    goToDashboard: string;
+  };
+  storyPage: {
+    generateMissingImages: string;
+    linkCopiedToastTitle: string;
+    linkCopiedToastDescription: string;
+    failedToCopyLink: string;
+    storySavedSuccessfully: string;
+    failedToSaveStory: string;
+  };
+  userProfile: {
+    userProfile: string;
+    refreshData: string;
+    noName: string;
+    editName: string;
+    yourKids: string;
+    youHaventAddedKids: string;
+    errorLoadingProfile: string;
+  };
+  successOrder: {
+    thankYou: string;
+    generatingMessage: string;
+    orderId: string;
+    returnHome: string;
   };
 }
 

@@ -39,6 +39,7 @@ export interface KidDetails {
   avatarUrl?: string;
   kidSelectedAvatar?: string; // URL of the selected generated avatar
   stories?: Story[];
+  stories_created?: number; // Total number of stories created (including deleted ones)
   createdAt?: Date;
   lastUpdated?: Date;
   
