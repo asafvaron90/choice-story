@@ -89,12 +89,12 @@ export default function StoryPageComponent() {
 
       const pageId = getPageId(page);
       const cardHandle = storyPageRefs.current[pageId];
-      
+
       // Skip if already generating
       if (cardHandle?.isGenerating()) {
         return;
       }
-      
+
       cardHandle?.triggerGenerateImage();
     });
   }, [currentUser, kid, story]);
@@ -109,7 +109,7 @@ export default function StoryPageComponent() {
   // Auto-trigger image generation when coming from create-a-story
   useEffect(() => {
     const shouldAutoGenerate = searchParams.get('autoGenerate') === 'true';
-    
+
     if (
       shouldAutoGenerate &&
       !autoGenerateTriggered.current &&
@@ -119,11 +119,11 @@ export default function StoryPageComponent() {
       !loading
     ) {
       const hasMissingImages = story.pages.some((page) => !page.selectedImageUrl);
-      
+
       if (hasMissingImages) {
         // Mark as triggered to prevent multiple runs
         autoGenerateTriggered.current = true;
-        
+
         // Small delay to ensure all refs are set
         setTimeout(() => {
           handleGenerateMissingImages();
@@ -161,9 +161,7 @@ export default function StoryPageComponent() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: story?.title || "Story",
-          text: story?.problemDescription || "Check out this story!",
-          url: shareUrl,
+          url: shareUrl
         });
       } catch (error) {
         // User cancelled or error occurred
@@ -270,95 +268,95 @@ export default function StoryPageComponent() {
             {story.problemDescription}
           </p>
 
-        {/* Auto Generate Button - missing images */}
-        {isMissingImages && (
-          <div className="my-8 flex justify-center">
-            <button
-              onClick={handleGenerateMissingImages}
-              className="px-6 py-3 rounded-md bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!story.pages.some((page) => !page.selectedImageUrl)}
-            >
-              {t.storyPage.generateMissingImages}
-            </button>
-          </div>
-        )}
+          {/* Auto Generate Button - missing images */}
+          {isMissingImages && (
+            <div className="my-8 flex justify-center">
+              <button
+                onClick={handleGenerateMissingImages}
+                className="px-6 py-3 rounded-md bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!story.pages.some((page) => !page.selectedImageUrl)}
+              >
+                {t.storyPage.generateMissingImages}
+              </button>
+            </div>
+          )}
 
-        {/* 3 Action buttons (Copy, Share, Read) */}
-        {!isMissingImages && (
-          <div className="flex flex-wrap items-center justify-center gap-3 py-8">
-            <button
-              onClick={() => router.push(`/story/${storyId}`)}
-              className="px-6 py-2 rounded-md bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-md"
-            >
-              {t.story.readStory}
-            </button>
-            <button
-              onClick={handleShareStory}
-              className="px-6 py-2 rounded-md bg-green-600 text-white font-bold hover:bg-green-700 transition-colors shadow-md flex items-center gap-2"
-            >
-              <Share2 size={18} />
-              {t.story.share}
-            </button>
-            <button
-              onClick={handleCopyLink}
-              className="px-6 py-2 rounded-md bg-purple-600 text-white font-bold hover:bg-purple-700 transition-colors shadow-md flex items-center gap-2"
-            >
-              {copied ? <Check size={18} /> : <Copy size={18} />}
-              {copied ? `${t.story.linkCopied}` : `${t.story.copyLink}`}
-            </button>
-          </div>
-        )}
-      </div>
+          {/* 3 Action buttons (Copy, Share, Read) */}
+          {!isMissingImages && (
+            <div className="flex flex-wrap items-center justify-center gap-3 py-8">
+              <button
+                onClick={() => router.push(`/story/${storyId}`)}
+                className="px-6 py-2 rounded-md bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-md"
+              >
+                {t.story.readStory}
+              </button>
+              <button
+                onClick={handleShareStory}
+                className="px-6 py-2 rounded-md bg-green-600 text-white font-bold hover:bg-green-700 transition-colors shadow-md flex items-center gap-2"
+              >
+                <Share2 size={18} />
+                {t.story.share}
+              </button>
+              <button
+                onClick={handleCopyLink}
+                className="px-6 py-2 rounded-md bg-purple-600 text-white font-bold hover:bg-purple-700 transition-colors shadow-md flex items-center gap-2"
+              >
+                {copied ? <Check size={18} /> : <Copy size={18} />}
+                {copied ? `${t.story.linkCopied}` : `${t.story.copyLink}`}
+              </button>
+            </div>
+          )}
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {story.pages.map((page) => (
-          <StoryPageCard
-            key={getPageId(page)}
-            ref={(ref) => {
-              const pageId = getPageId(page);
-              if (ref) {
-                storyPageRefs.current[pageId] = ref;
-              } else {
-                delete storyPageRefs.current[pageId];
-              }
-            }}
-            page={page}
-            story={story}
-            kid={kid}
-            useAIBots={true} // Enable new AI bot system for Phase 2
-            onPageUpdate={(updatedPage, options) => {
-              let updatedStory: Story | null = null;
-
-              // Optimistically update local state for immediate UI feedback
-              setStory((prevStory) => {
-                if (!prevStory) {
-                  return prevStory;
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {story.pages.map((page) => (
+            <StoryPageCard
+              key={getPageId(page)}
+              ref={(ref) => {
+                const pageId = getPageId(page);
+                if (ref) {
+                  storyPageRefs.current[pageId] = ref;
+                } else {
+                  delete storyPageRefs.current[pageId];
                 }
+              }}
+              page={page}
+              story={story}
+              kid={kid}
+              useAIBots={true} // Enable new AI bot system for Phase 2
+              onPageUpdate={(updatedPage, options) => {
+                let updatedStory: Story | null = null;
 
-                const updatedPages = prevStory.pages.map((p) =>
-                  p.pageNum === updatedPage.pageNum &&
-                  p.pageType === updatedPage.pageType
-                    ? updatedPage
-                    : p
-                );
+                // Optimistically update local state for immediate UI feedback
+                setStory((prevStory) => {
+                  if (!prevStory) {
+                    return prevStory;
+                  }
 
-                updatedStory = {
-                  ...prevStory,
-                  pages: updatedPages,
-                };
+                  const updatedPages = prevStory.pages.map((p) =>
+                    p.pageNum === updatedPage.pageNum &&
+                      p.pageType === updatedPage.pageType
+                      ? updatedPage
+                      : p
+                  );
 
-                return updatedStory;
-              });
+                  updatedStory = {
+                    ...prevStory,
+                    pages: updatedPages,
+                  };
 
-              // Skip saving if the update was already persisted server-side (e.g., image generation)
-              if (!options?.skipPersist && updatedStory) {
-                void handleSaveStory(updatedStory);
-              }
-            }}
-          />
-        ))}
+                  return updatedStory;
+                });
+
+                // Skip saving if the update was already persisted server-side (e.g., image generation)
+                if (!options?.skipPersist && updatedStory) {
+                  void handleSaveStory(updatedStory);
+                }
+              }}
+            />
+          ))}
+        </div>
       </div>
-    </div>
     </>
   );
 }
