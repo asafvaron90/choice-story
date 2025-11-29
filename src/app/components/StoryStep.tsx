@@ -1,6 +1,9 @@
+'use client';
+
 import React from 'react';
-import { Check, Loader2, ChevronDown, ChevronRight, Lock } from "lucide-react";
+import { Check, Loader2, ChevronDown, ChevronRight, ChevronLeft, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/app/hooks/useTranslation";
 
 interface StepProps {
   title: string;
@@ -23,6 +26,8 @@ export const StoryStep: React.FC<StepProps> = ({
   children,
   isLoading,
 }) => {
+  const { isRTL } = useTranslation();
+  
   return (
     <div className={cn(
       "border rounded-lg mb-2 overflow-hidden transition-all duration-200",
@@ -35,10 +40,27 @@ export const StoryStep: React.FC<StepProps> = ({
         className={cn(
           "w-full px-4 py-3 flex items-center justify-between",
           isDisabled ? "cursor-not-allowed" : "cursor-pointer",
-          isActive ? "bg-blue-50" : "bg-white"
+          isActive ? "bg-blue-50" : "bg-white",
+          isRTL && "flex-row-reverse"
         )}
       >
-        <div className="flex items-center gap-2">
+        <div className="w-5 h-5 flex items-center justify-center">
+          {!isDisabled && (
+            isExpanded ? (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            ) : (
+              isRTL ? (
+                <ChevronLeft className="w-5 h-5 text-gray-500" />
+              ) : (
+                <ChevronRight className="w-5 h-5 text-gray-500" />
+              )
+            )
+          )}
+        </div>
+        <div className={cn(
+          "flex items-center gap-2",
+          isRTL && "flex-row-reverse"
+        )}>
           <div className={cn(
             "w-6 h-6 rounded-full flex items-center justify-center",
             isCompleted ? "bg-green-500 text-white" : 
@@ -55,13 +77,6 @@ export const StoryStep: React.FC<StepProps> = ({
           </div>
           <span className="font-medium">{title}</span>
         </div>
-        {!isDisabled && (
-          isExpanded ? (
-            <ChevronDown className="w-5 h-5 text-gray-500" />
-          ) : (
-            <ChevronRight className="w-5 h-5 text-gray-500" />
-          )
-        )}
       </button>
       {isExpanded && (
         <div className={cn(

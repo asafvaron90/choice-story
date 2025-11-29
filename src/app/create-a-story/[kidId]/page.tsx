@@ -35,7 +35,7 @@ export default function CreateAStoryPage() {
   const params = useParams();
   const router = useRouter();
   const kidId = params.kidId as string;
-  const { t } = useTranslation();
+  const { t, isRTL } = useTranslation();
   const { currentUser, loading: authLoading } = useAuth();
   const { accountData } = useAccountState();
 
@@ -282,7 +282,7 @@ export default function CreateAStoryPage() {
                 title: "Success",
                 description: "Your story has been saved successfully!",
               });
-              router.push(`/stories/${response.data.story.id}`);
+              router.push(`/stories/${response.data.story.id}?autoGenerate=true`);
             } else {
               throw new Error("Failed to save story");
             }
@@ -313,16 +313,16 @@ export default function CreateAStoryPage() {
   };
 
   const getMainActionLabel = () => {
-    if (state.isGeneratingTitles) return "Generating Titles...";
-    if (state.isGeneratingStory) return "Generating Story...";
-    if (state.isSavingStory) return "Saving Story...";
+    if (state.isGeneratingTitles) return t.createStory.buttons.generatingTitles;
+    if (state.isGeneratingStory) return t.createStory.buttons.generatingStory;
+    if (state.isSavingStory) return t.createStory.buttons.savingStory;
 
     switch (currentStep) {
-      case 'problemDescription': return "Generate Story Titles";
-      case 'selectTitle': return "Generate Story";
-      case 'generateCover': return "Continue to Preview";
-      case 'finishStory': return "Save Story";
-      default: return "Continue";
+      case 'problemDescription': return t.createStory.buttons.generateStoryTitles;
+      case 'selectTitle': return t.createStory.buttons.generateStory;
+      case 'generateCover': return t.createStory.buttons.continueToPreview;
+      case 'finishStory': return t.createStory.buttons.saveStory;
+      default: return t.createStory.buttons.continue;
     }
   };
 
@@ -363,7 +363,7 @@ export default function CreateAStoryPage() {
                       <button
                         type="button"
                         onClick={() => handleRemoveAdvantage(index)}
-                        className="ml-1 rounded-full p-0.5 hover:bg-secondary/80"
+                        className={`rounded-full p-0.5 hover:bg-secondary/80 ${isRTL ? 'mr-1' : 'ml-1'}`}
                         aria-label={`Remove advantage ${advantage}`}
                       >
                         <X className="h-3 w-3" />
@@ -395,7 +395,7 @@ export default function CreateAStoryPage() {
                       <button
                         type="button"
                         onClick={() => handleRemoveDisadvantage(index)}
-                        className="ml-1 rounded-full p-0.5 hover:bg-secondary/80"
+                        className={`rounded-full p-0.5 hover:bg-secondary/80 ${isRTL ? 'mr-1' : 'ml-1'}`}
                         aria-label={`Remove disadvantage ${disadvantage}`}
                       >
                         <X className="h-3 w-3" />
@@ -440,16 +440,16 @@ export default function CreateAStoryPage() {
                 className="space-y-2"
               >
                 {state.titles.map((title: string, index: number) => (
-                <div key={index} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md">
+                <div key={index} className={`flex items-center p-2 hover:bg-gray-50 rounded-md ${isRTL ? 'space-x-reverse flex-row-reverse' : ''} space-x-2`}>
                   <RadioGroupItem value={title} id={`title-${index}`} />
-                  <Label htmlFor={`title-${index}`}>{title}</Label>
+                  <Label htmlFor={`title-${index}`} className="cursor-pointer">{title}</Label>
                 </div>
               ))}
             </RadioGroup>
           ) : (
               state.isGeneratingTitles ? (
-                <p className="text-gray-500 flex items-center">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t.createStory.preview.generating}
+                <p className={`text-gray-500 flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Loader2 className={`h-4 w-4 animate-spin ${isRTL ? 'ml-2' : 'mr-2'}`} /> {t.createStory.preview.generating}
               </p>
             ) : (
                 <p className="text-gray-500">No titles generated yet.</p>
@@ -538,8 +538,8 @@ export default function CreateAStoryPage() {
           size="lg"
         >
           {(state.isGeneratingTitles || state.isGeneratingStory || state.isSavingStory) ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <div className={`flex items-center justify-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <Loader2 className={`h-4 w-4 animate-spin ${isRTL ? 'ml-2' : 'mr-2'}`} />
               <span>{getMainActionLabel()}</span>
             </div>
           ) : (
