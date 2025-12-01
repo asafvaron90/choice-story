@@ -1,7 +1,7 @@
 import { FC, useState, useCallback, memo } from 'react';
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/use-toast";
-import { KidDetails, Story, StoryStatus } from "@/models";
+import { KidDetails, Story, StoryStatus, Account } from "@/models";
 import { useAuth } from '@/app/context/AuthContext';
 import { useAvatarHandling } from '../../hooks/useAvatarHandling';
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { KidApi, ImageGenerationApi } from '@/app/network';
 import { QuickGenerateDialog } from '@/app/features/story/components/quick-generator/QuickGenerateDialog';
@@ -30,6 +31,7 @@ interface UserCardProps {
   kid: KidDetails;
   onDelete?: (kidId?: string) => void;
   onEdit?: (kid: KidDetails) => void;
+  userAccountData?: Account | null;
 }
 
 // Avatar Dialog Component
@@ -265,11 +267,13 @@ export const UserCard: React.FC<UserCardProps> = memo(({
   kid,
   onDelete,
   onEdit,
+  userAccountData,
 }) => {
   // Component state
   const [isDeleting, setIsDeleting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showStoryLimitDialog, setShowStoryLimitDialog] = useState(false);
   
   // Hooks
   const router = useRouter();
@@ -368,8 +372,14 @@ export const UserCard: React.FC<UserCardProps> = memo(({
   }, [currentUser, kid, onDelete, t]);
 
   const handleCreateStory = useCallback(() => {
+    // Check if user has reached their story per kid limit
+    if (userAccountData?.story_per_kid_limit !== undefined && stories.length >= userAccountData.story_per_kid_limit) {
+      // Show custom dialog instead of alert
+      setShowStoryLimitDialog(true);
+      return;
+    }
     router.push(`/create-a-story/${kid.id}`);
-  }, [router, kid]);
+  }, [router, kid, userAccountData, stories.length]);
 
   const handleViewStory = useCallback((storyId: string) => {
     router.push(`/stories/${storyId}`);
@@ -614,6 +624,44 @@ export const UserCard: React.FC<UserCardProps> = memo(({
         onSelectAvatar={handleSelectAvatar}
         t={t}
       />
+
+      {/* Story Limit Dialog */}
+      <Dialog open={showStoryLimitDialog} onOpenChange={setShowStoryLimitDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <svg 
+                className="h-6 w-6 text-yellow-500" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
+                />
+              </svg>
+              Story Limit Reached
+            </DialogTitle>
+            <DialogDescription className="pt-4 text-base">
+              You have reached the story limit of <span className="font-semibold text-gray-900">{userAccountData?.story_per_kid_limit}</span> for this kid.
+              <br /><br />
+              Please contact your agent to increase your limit.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-end">
+            <Button
+              type="button"
+              onClick={() => setShowStoryLimitDialog(false)}
+              className="rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });

@@ -11,7 +11,8 @@ export const enTranslations: Translation = {
     signOut: "Sign Out",
     dashboard: "Dashboard",
     account: "Account",
-    gallery: "Gallery"
+    gallery: "Gallery",
+    adminPanel: "Admin Panel"
   },
   hero: {
     title: "Create Personalized Stories",

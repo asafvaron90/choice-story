@@ -14,6 +14,10 @@ export interface Account {
   photoURL?: string;
   phoneNumber?: string;
   metadata?: Record<string, unknown>;
+  role?: string;
+  access_rights?: string;
+  kids_limit?: number;
+  story_per_kid_limit?: number;
   createAt: Date;
   lastUpdated: Date;
 }
