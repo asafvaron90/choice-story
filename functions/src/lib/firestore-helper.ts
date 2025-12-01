@@ -100,6 +100,35 @@ export class FirestoreHelper {
   }
 
   /**
+   * Increment the stories_created counter for a kid
+   * This tracks the total number of stories created, even if some are deleted
+   * @param kidId The kid ID
+   * @returns The updated stories_created count
+   */
+  async incrementStoriesCreated(kidId: string): Promise<number> {
+    const kidRef = this.getKidRef(kidId);
+    const kidDoc = await kidRef.get();
+    
+    if (!kidDoc.exists) {
+      throw new Error(`Kid with ID ${kidId} doesn't exist.`);
+    }
+    
+    const existingData = kidDoc.data() || {};
+    const currentCount = existingData.stories_created || 0;
+    const newCount = currentCount + 1;
+    
+    // Update with the new count
+    await kidRef.update({
+      stories_created: newCount,
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    
+    console.log(`Incremented stories_created for kid ${kidId}: ${currentCount} -> ${newCount}`);
+    
+    return newCount;
+  }
+
+  /**
    * Get a story document by ID
    * @param storyId The story ID
    * @returns The story document snapshot

@@ -121,21 +121,22 @@ export const Header = () => {
   const hasReadAccess = userAccountData?.role === "read" || userAccountData?.role === "write" || hasAdminAccess;
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow-sm">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+    <>
+      <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
           {/* Logo - centered on mobile, left/right aligned based on direction */}
           <div className={cn(
             "flex items-center",
             isRTL ? "order-3 md:order-3" : "order-1 md:order-1"
           )}>
             <Link href="/" prefetch={true} className="relative">
-              <div className="w-[120px] h-[30px] relative">
+              <div className="w-[140px] h-[84px]">
                 <Image
                   src="/landing-page-images/logo.svg"
                   alt="Choice Story"
                   fill
-                  style={{ objectFit: 'contain' }}
+                  style={{ objectFit: 'cover' }}
                   priority
                 />
               </div>
@@ -202,7 +203,7 @@ export const Header = () => {
                 className={cn("w-[300px]", direction)}
               >
                 <DrawerTitle className="sr-only">
-                  Navigation Menu
+                  {t.common.navigationMenu}
                 </DrawerTitle>
                 <nav className="flex flex-col h-full">
                   <div className="flex-1">
@@ -222,9 +223,9 @@ export const Header = () => {
                         <Image 
                           src="/landing-page-images/logo.svg" 
                           alt="Choice Story" 
-                          width={120}
-                          height={48}
-                          className="h-12 w-auto object-contain"
+                          width={220}
+                          height={84}
+                          className="cover"
                         />
                       </Link>
                     </motion.div>
@@ -354,7 +355,10 @@ export const Header = () => {
           </div>
         </div>
       </div>
-    </header>
+      </header>
+      {/* Spacer for fixed header - only present when header is rendered */}
+      <div className="h-16" aria-hidden="true" />
+    </>
   );
 };
 

@@ -9,7 +9,7 @@ import { useTranslation } from '@/app/hooks/useTranslation';
 import { useErrorReporting } from '@/app/hooks/useErrorReporting';
 import { StoryPageImageGenerator } from '@/app/components/common/StoryPageImageGenerator';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { RefreshCw, Pencil, Check } from 'lucide-react';
 
@@ -25,6 +25,7 @@ type StoryPageCardProps = {
 export type StoryPageCardHandle = {
   triggerGenerateImage: () => void;
   hasImage: () => boolean;
+  isGenerating: () => boolean;
 };
 
 export const StoryPageCard = forwardRef<StoryPageCardHandle, StoryPageCardProps>(function StoryPageCard(
@@ -44,6 +45,7 @@ export const StoryPageCard = forwardRef<StoryPageCardHandle, StoryPageCardProps>
   const [isEditingText, setIsEditingText] = useState(false);
   const [editedText, setEditedText] = useState(initialPage.storyText);
   const [showGeneratedImages, setShowGeneratedImages] = useState(false);
+  const [isHoveringText, setIsHoveringText] = useState(false);
   const { currentUser } = useAuth();
   const { t } = useTranslation();
   const { recordError } = useErrorReporting();
@@ -165,97 +167,21 @@ export const StoryPageCard = forwardRef<StoryPageCardHandle, StoryPageCardProps>
         setShowGeneratedImages(true);
       },
       hasImage: () => Boolean(page.selectedImageUrl),
+      isGenerating: () => isGeneratingImage,
     }),
-    [currentUser, kid, page.selectedImageUrl]
+    [currentUser, kid, page.selectedImageUrl, isGeneratingImage]
   );
 
   return (
-    <Card className="overflow-hidden">
-      {/* Page Type Badge */}
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* Edit button on the left */}
-            {currentUser && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleEditToggle}
-                className="h-8 w-8 p-0"
-                title={isEditingText ? "Save changes" : "Edit text"}
-              >
-                {isEditingText ? (
-                  <Check className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Pencil className="h-4 w-4 text-gray-600" />
-                )}
-              </Button>
-            )}
-            <span className={`text-xs px-2 py-1 rounded-full ${getPageTypeColor(page.pageType)}`}>
-              {getPageTypeLabel(page.pageType)} - {page.pageNum}
-            </span>
-          </div>
-          {currentUser && !textOnly && !isEditingText && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRegenerateText}
-              disabled={isRegeneratingText}
-              className="h-8 w-8 p-0"
-              title={t.createStory.choices.regenerateTitle}
-            >
-              {isRegeneratingText ? (
-                <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-        </div>
-      </CardHeader>
+    <Card className="relative mt-4">
+      {/* Page Type Badge - positioned on top right border */}
+      <div className="absolute -top-3 right-4 z-10">
+        <span className={`text-xs px-3 py-1 rounded-full ${getPageTypeColor(page.pageType)} shadow-sm`}>
+          {getPageTypeLabel(page.pageType)} - {page.pageNum}
+        </span>
+      </div>
 
-      <CardContent className="space-y-4">
-        {/* Text Content */}
-        <div className="relative">
-          {isEditingText ? (
-            <div className="space-y-2">
-              <Textarea
-                value={editedText}
-                onChange={(e) => setEditedText(e.target.value)}
-                className={`text-gray-700 resize-none ${textOnly ? 'min-h-[120px]' : 'min-h-[60px]'}`}
-                placeholder="Enter story text..."
-              />
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleEditToggle}
-                  className="text-green-600 border-green-600 hover:bg-green-50"
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Save
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancelEdit}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <p className={`text-gray-700 ${textOnly ? 'text-base leading-relaxed' : 'line-clamp-3'} ${isRegeneratingText ? 'opacity-50' : ''}`}>
-              {page.storyText}
-            </p>
-          )}
-          {isRegeneratingText && !isEditingText && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/50">
-              <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-            </div>
-          )}
-        </div>
-
+      <CardContent className="space-y-4 pt-6">
         {/* Image-related content - only show if not textOnly mode */}
         {!textOnly && (
           <>
@@ -332,6 +258,82 @@ export const StoryPageCard = forwardRef<StoryPageCardHandle, StoryPageCardProps>
         )}
           </>
         )}
+
+        {/* Action Buttons - above text */}
+        {currentUser && !isEditingText && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleEditToggle}
+              className="h-8 w-8 p-0"
+              title="Edit text"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            {!textOnly && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRegenerateText}
+                disabled={isRegeneratingText}
+                className="h-8 w-8 p-0"
+                title={t.createStory.choices.regenerateTitle}
+              >
+                {isRegeneratingText ? (
+                  <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Text Content */}
+        <div className="relative">
+          {isEditingText ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editedText}
+                onChange={(e) => setEditedText(e.target.value)}
+                className={`text-gray-700 resize-none ${textOnly ? 'min-h-[120px]' : 'min-h-[60px]'}`}
+                placeholder="Enter story text..."
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEditToggle}
+                  className="text-green-600 border-green-600 hover:bg-green-50"
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Save
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p 
+              className={`text-gray-700 ${textOnly ? 'text-base leading-relaxed' : (isHoveringText ? '' : 'line-clamp-3')} ${isRegeneratingText ? 'opacity-50' : ''} ${!textOnly ? 'cursor-pointer transition-all' : ''}`}
+              onMouseEnter={() => !textOnly && setIsHoveringText(true)}
+              onMouseLeave={() => !textOnly && setIsHoveringText(false)}
+            >
+              {page.storyText}
+            </p>
+          )}
+          {isRegeneratingText && !isEditingText && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/50">
+              <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

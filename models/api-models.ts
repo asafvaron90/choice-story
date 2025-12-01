@@ -52,6 +52,7 @@ export const KidDetailsSchema = z.object({
   avatarUrl: z.string().optional(),
   imageAnalysis: z.string().optional(),
   stories: z.array(z.any()).optional(),
+  stories_created: z.number().int().min(0).optional(),
 });
 
 export const KidCreateRequestSchema = z.object({

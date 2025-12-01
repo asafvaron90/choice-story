@@ -62,9 +62,7 @@ export const StoryActionsModal: FC<StoryActionsModalProps> = ({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: story.title || "Story",
-          text: story.problemDescription || "Check out this story!",
-          url: shareUrl,
+          url: shareUrl
         });
       } catch (error) {
         // User cancelled or error occurred
