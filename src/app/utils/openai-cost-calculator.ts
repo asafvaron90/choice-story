@@ -104,7 +104,7 @@ export function calculateImageGenerationCost(
   }
 
   if (model === 'dall-e-3' && quality === 'hd') {
-    return pricing.hd * count;
+    return PRICING['dall-e-3'].hd * count;
   }
 
   return pricing.standard * count;

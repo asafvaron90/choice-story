@@ -94,9 +94,11 @@ export class AnalyticsIntegrationService {
             userId,
             storyId,
             pageType,
-            durationMs,
             cost,
-            isRegeneration
+            isRegeneration,
+            undefined, // storyTitle
+            undefined, // kidId
+            durationMs
           );
         }
       }

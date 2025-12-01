@@ -533,11 +533,12 @@ export class FirebaseAnalyticsService {
     cost?: number,
     isRegeneration: boolean = false,
     storyTitle?: string,
-    kidId?: string
+    kidId?: string,
+    durationMsOverride?: number
   ): void {
     const imageKey = `${storyId}-${pageType}`;
     const imageGen = this.imageGenerations.get(imageKey);
-    const durationMs = imageGen ? Date.now() - imageGen.startTime : 0;
+    const durationMs = durationMsOverride || (imageGen ? Date.now() - imageGen.startTime : 0);
     const imageCost = cost || 0;
     
     // Add cost to session if available
