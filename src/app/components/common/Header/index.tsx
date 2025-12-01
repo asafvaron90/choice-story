@@ -131,12 +131,12 @@ export const Header = () => {
             isRTL ? "order-3 md:order-3" : "order-1 md:order-1"
           )}>
             <Link href="/" prefetch={true} className="relative">
-              <div className="w-[120px] h-[30px] relative">
+              <div className="w-[140px] h-[84px]">
                 <Image
                   src="/landing-page-images/logo.svg"
                   alt="Choice Story"
                   fill
-                  style={{ objectFit: 'contain' }}
+                  style={{ objectFit: 'cover' }}
                   priority
                 />
               </div>
@@ -223,9 +223,9 @@ export const Header = () => {
                         <Image 
                           src="/landing-page-images/logo.svg" 
                           alt="Choice Story" 
-                          width={120}
-                          height={48}
-                          className="h-12 w-auto object-contain"
+                          width={220}
+                          height={84}
+                          className="cover"
                         />
                       </Link>
                     </motion.div>
