@@ -4,7 +4,7 @@ import { LanguageProvider } from "./context/LanguageContext";
 import { RootLayout as AppLayout } from "./components/common/RootLayout";
 import { metadata } from "./metadata";
 import AuthProviderWrapper from "./ui/components/AuthProviderWrapper";
-import { Toaster } from "../components/ui/toaster"
+import { Toaster } from "../components/ui/toaster";
 import { ErrorReportingProvider } from "./components/ui/ErrorReportingProvider";
 
 const inter = Inter({ subsets: ["latin"] });
