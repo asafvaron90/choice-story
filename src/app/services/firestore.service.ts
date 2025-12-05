@@ -478,6 +478,117 @@ class FirestoreService {
       throw error;
     }
   }
+
+  /**
+   * Check if a kid is already shared with an email
+   * @param kidId The kid's ID
+   * @param email The email to check
+   * @returns true if already shared, false otherwise
+   */
+  async isKidSharedWithEmail(kidId: string, email: string): Promise<boolean> {
+    try {
+      this.ensureInitialized();
+      
+      // Normalize email to use as document ID (replace dots with underscores for Firestore compatibility)
+      const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
+      const shareRef = doc(this.db!, this.getUsersCollection(), kidId, 'sharedWith', normalizedEmail);
+      const shareDoc = await getDoc(shareRef);
+      
+      return shareDoc.exists();
+    } catch (error) {
+      console.error('Error checking kid share:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Share a kid with an email address
+   * @param kidId The kid's ID
+   * @param email The email to share with
+   * @param sharedByAccountId The accountId of the user sharing the kid
+   * @returns The share document data
+   */
+  async shareKidWithEmail(
+    kidId: string, 
+    email: string,
+    sharedByAccountId: string
+  ): Promise<{ email: string; permission: string }> {
+    try {
+      this.ensureInitialized();
+      
+      // Normalize email for document ID
+      const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
+      const shareRef = doc(this.db!, this.getUsersCollection(), kidId, 'sharedWith', normalizedEmail);
+      
+      const shareData = {
+        permission: 'read',
+        sharedBy: sharedByAccountId,
+        sharedAt: new Date()
+      };
+      
+      await setDoc(shareRef, shareData);
+      
+      console.log(`[FIRESTORE_CLIENT] Kid ${kidId} shared with ${email} by account ${sharedByAccountId}`);
+      return { email: email.toLowerCase(), permission: 'read' };
+    } catch (error) {
+      console.error('Error sharing kid:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove sharing access for a kid from an email
+   * @param kidId The kid's ID  
+   * @param email The email to remove access from
+   */
+  async removeKidShare(kidId: string, email: string): Promise<void> {
+    try {
+      this.ensureInitialized();
+      
+      const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
+      const shareRef = doc(this.db!, this.getUsersCollection(), kidId, 'sharedWith', normalizedEmail);
+      
+      await deleteDoc(shareRef);
+      
+      console.log(`[FIRESTORE_CLIENT] Removed share access for kid ${kidId} from ${email}`);
+    } catch (error) {
+      console.error('Error removing kid share:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all emails that a kid is shared with
+   * @param kidId The kid's ID
+   * @returns Array of share info including email, permission, sharedBy accountId, and sharedAt
+   */
+  async getKidShares(kidId: string): Promise<{ 
+    email: string; 
+    permission: string;
+    sharedBy?: string;  // accountId of who shared
+    sharedAt?: Date;
+  }[]> {
+    try {
+      this.ensureInitialized();
+      
+      const sharesRef = collection(this.db!, this.getUsersCollection(), kidId, 'sharedWith');
+      const sharesSnapshot = await getDocs(sharesRef);
+      
+      return sharesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          // Convert document ID back to email (replace underscores with dots)
+          email: doc.id.replace(/_/g, '.'),
+          permission: data.permission || 'read',
+          sharedBy: data.sharedBy || undefined,
+          sharedAt: data.sharedAt?.toDate ? data.sharedAt.toDate() : undefined
+        };
+      });
+    } catch (error) {
+      console.error('Error getting kid shares:', error);
+      throw error;
+    }
+  }
 }
 
 // Create a single instance
