@@ -268,7 +268,7 @@ const ShareKidDialog: FC<{
   onOpenChange: (isOpen: boolean) => void;
   kidId: string;
   kidName: string;
-  currentUser: { uid: string; email: string | null; displayName: string | null } | null;
+  currentUser: { uid: string; email?: string | null; displayName?: string | null } | null;
   t: {
     userCard: {
       shareDialog: {
