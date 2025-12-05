@@ -1,4 +1,4 @@
-import { getFirestore, collection, doc, getDoc, getDocs, query, where, Firestore, addDoc, serverTimestamp, deleteDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, collection, collectionGroup, doc, getDoc, getDocs, query, where, Firestore, addDoc, serverTimestamp, deleteDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { app } from '@choiceStoryWeb/firebase';
 import { Account, KidDetails } from '@choiceStoryWeb/models';
 import type { UserData } from '@/app/network/UserApi';
@@ -483,21 +483,30 @@ class FirestoreService {
    * Check if a kid is already shared with an email
    * @param kidId The kid's ID
    * @param email The email to check
-   * @returns true if already shared, false otherwise
+   * @returns true if already shared, false otherwise (also returns false on error)
    */
   async isKidSharedWithEmail(kidId: string, email: string): Promise<boolean> {
     try {
       this.ensureInitialized();
       
-      // Normalize email to use as document ID (replace dots with underscores for Firestore compatibility)
+      // Normalize email to use as document ID (replace dots for Firestore compatibility)
       const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
-      const shareRef = doc(this.db!, this.getUsersCollection(), kidId, 'sharedWith', normalizedEmail);
+      const collectionPath = this.getUsersCollection();
+      const fullPath = `${collectionPath}/${kidId}/sharedWith/${normalizedEmail}`;
+      
+      console.log(`[FIRESTORE_CLIENT] Checking share at path: ${fullPath}`);
+      
+      const shareRef = doc(this.db!, collectionPath, kidId, 'sharedWith', normalizedEmail);
       const shareDoc = await getDoc(shareRef);
       
+      console.log(`[FIRESTORE_CLIENT] Share exists: ${shareDoc.exists()}`);
       return shareDoc.exists();
     } catch (error) {
-      console.error('Error checking kid share:', error);
-      throw error;
+      // If we can't check (subcollection doesn't exist, offline, etc.), 
+      // assume it's not shared and let the share proceed
+      console.warn('[FIRESTORE_CLIENT] Could not check existing share, assuming not shared:', error);
+      console.log('[FIRESTORE_CLIENT] kidId:', kidId, 'email:', email);
+      return false;
     }
   }
 
@@ -506,32 +515,47 @@ class FirestoreService {
    * @param kidId The kid's ID
    * @param email The email to share with
    * @param sharedByAccountId The accountId of the user sharing the kid
+   * @param permission The permission level ('read' or 'write'), defaults to 'read'
    * @returns The share document data
    */
   async shareKidWithEmail(
     kidId: string, 
     email: string,
-    sharedByAccountId: string
+    sharedByAccountId: string,
+    permission: 'read' | 'write' = 'read'
   ): Promise<{ email: string; permission: string }> {
+    console.log(`[FIRESTORE_CLIENT] shareKidWithEmail called:`, { kidId, email, sharedByAccountId, permission });
+    
     try {
+      console.log(`[FIRESTORE_CLIENT] Ensuring initialized...`);
       this.ensureInitialized();
+      console.log(`[FIRESTORE_CLIENT] Firestore initialized, db:`, !!this.db);
       
-      // Normalize email for document ID
+      // Normalize email for document ID (replace dots for Firestore compatibility)
       const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
-      const shareRef = doc(this.db!, this.getUsersCollection(), kidId, 'sharedWith', normalizedEmail);
+      const collectionPath = this.getUsersCollection();
+      const fullPath = `${collectionPath}/${kidId}/sharedWith/${normalizedEmail}`;
+      
+      console.log(`[FIRESTORE_CLIENT] Creating share at path: ${fullPath}`);
+      
+      const shareRef = doc(this.db!, collectionPath, kidId, 'sharedWith', normalizedEmail);
+      console.log(`[FIRESTORE_CLIENT] Document reference created`);
       
       const shareData = {
-        permission: 'read',
+        email: email.toLowerCase(), // Store email as field for collection group queries
+        permission,
         sharedBy: sharedByAccountId,
         sharedAt: new Date()
       };
       
+      console.log(`[FIRESTORE_CLIENT] About to call setDoc with data:`, shareData);
       await setDoc(shareRef, shareData);
+      console.log(`[FIRESTORE_CLIENT] setDoc completed successfully`);
       
-      console.log(`[FIRESTORE_CLIENT] Kid ${kidId} shared with ${email} by account ${sharedByAccountId}`);
-      return { email: email.toLowerCase(), permission: 'read' };
+      console.log(`[FIRESTORE_CLIENT] Kid ${kidId} shared with ${email} (${permission}) by account ${sharedByAccountId}`);
+      return { email: email.toLowerCase(), permission };
     } catch (error) {
-      console.error('Error sharing kid:', error);
+      console.error('[FIRESTORE_CLIENT] Error sharing kid:', error);
       throw error;
     }
   }
@@ -577,8 +601,8 @@ class FirestoreService {
       return sharesSnapshot.docs.map(doc => {
         const data = doc.data();
         return {
-          // Convert document ID back to email (replace underscores with dots)
-          email: doc.id.replace(/_/g, '.'),
+          // Use email field directly (stored for querying), fallback to converting doc ID
+          email: data.email || doc.id.replace(/_/g, '.'),
           permission: data.permission || 'read',
           sharedBy: data.sharedBy || undefined,
           sharedAt: data.sharedAt?.toDate ? data.sharedAt.toDate() : undefined
@@ -586,6 +610,177 @@ class FirestoreService {
       });
     } catch (error) {
       console.error('Error getting kid shares:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all kids shared with an email address using collection group query
+   * @param email The email address to find shared kids for
+   * @returns Array of shared kid info with permission and sharedBy
+   */
+  async getKidsSharedWithEmail(email: string): Promise<{
+    kidId: string;
+    permission: 'read' | 'write';
+    sharedBy: string;
+    sharedAt?: Date;
+  }[]> {
+    try {
+      this.ensureInitialized();
+      
+      // Query across all sharedWith subcollections using collection group
+      const sharedWithRef = collectionGroup(this.db!, 'sharedWith');
+      const q = query(sharedWithRef, where('email', '==', email.toLowerCase()));
+      const snapshot = await getDocs(q);
+      
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Extract kidId from the document path: users_{env}/{kidId}/sharedWith/{email}
+        const pathSegments = doc.ref.path.split('/');
+        const kidId = pathSegments[1]; // Index 1 is the kidId
+        
+        return {
+          kidId,
+          permission: data.permission || 'read',
+          sharedBy: data.sharedBy,
+          sharedAt: data.sharedAt?.toDate ? data.sharedAt.toDate() : undefined
+        };
+      });
+    } catch (error) {
+      console.error('Error getting kids shared with email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all kids for an account - both owned and shared
+   * @param accountId The account ID
+   * @param accountEmail The account's email address (for finding shared kids)
+   * @returns Object with ownedKids and sharedKids arrays
+   */
+  async getKidsForAccount(accountId: string, accountEmail: string): Promise<{
+    ownedKids: (KidDetails & { id: string; avatarUrl: string; storiesCount: number })[];
+    sharedKids: {
+      kid: KidDetails & { id: string; avatarUrl: string; storiesCount: number };
+      permission: 'read' | 'write';
+      sharedBy: string;
+      sharedAt?: Date;
+    }[];
+  }> {
+    try {
+      this.ensureInitialized();
+      
+      // 1. Get owned kids
+      const ownedKids = await this.getKids(accountId);
+      
+      // 2. Get shared kids info
+      const sharedKidsInfo = await this.getKidsSharedWithEmail(accountEmail);
+      
+      // 3. Fetch full kid details for each shared kid
+      const sharedKids = await Promise.all(
+        sharedKidsInfo.map(async (shareInfo) => {
+          const kid = await this.getKid(shareInfo.kidId);
+          if (!kid) {
+            return null;
+          }
+          return {
+            kid,
+            permission: shareInfo.permission,
+            sharedBy: shareInfo.sharedBy,
+            sharedAt: shareInfo.sharedAt
+          };
+        })
+      );
+      
+      // Filter out any null results (kids that couldn't be found)
+      const validSharedKids = sharedKids.filter((item): item is NonNullable<typeof item> => item !== null);
+      
+      console.log(`[FIRESTORE_CLIENT] Found ${ownedKids.length} owned kids and ${validSharedKids.length} shared kids for account ${accountId}`);
+      
+      return {
+        ownedKids,
+        sharedKids: validSharedKids
+      };
+    } catch (error) {
+      console.error('Error getting kids for account:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get kids for Dashboard - owned kids + shared kids with 'write' permission
+   * @param accountId The account ID  
+   * @param accountEmail The account's email address
+   * @returns Array of kids (owned + write-shared) with ownership info
+   */
+  async getKidsForDashboard(accountId: string, accountEmail: string): Promise<{
+    kid: KidDetails & { id: string; avatarUrl: string; storiesCount: number };
+    isOwned: boolean;
+    permission?: 'read' | 'write';
+    sharedBy?: string;
+  }[]> {
+    try {
+      const { ownedKids, sharedKids } = await this.getKidsForAccount(accountId, accountEmail);
+      
+      // Owned kids
+      const ownedKidsResult = ownedKids.map(kid => ({
+        kid,
+        isOwned: true,
+        permission: undefined,
+        sharedBy: undefined
+      }));
+      
+      // Shared kids with 'write' permission only
+      const writeSharedKids = sharedKids
+        .filter(item => item.permission === 'write')
+        .map(item => ({
+          kid: item.kid,
+          isOwned: false,
+          permission: item.permission,
+          sharedBy: item.sharedBy
+        }));
+      
+      return [...ownedKidsResult, ...writeSharedKids];
+    } catch (error) {
+      console.error('Error getting kids for dashboard:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get kids for Gallery - owned kids + all shared kids (read and write permission)
+   * @param accountId The account ID
+   * @param accountEmail The account's email address
+   * @returns Array of kids (owned + all shared) with ownership info
+   */
+  async getKidsForGallery(accountId: string, accountEmail: string): Promise<{
+    kid: KidDetails & { id: string; avatarUrl: string; storiesCount: number };
+    isOwned: boolean;
+    permission?: 'read' | 'write';
+    sharedBy?: string;
+  }[]> {
+    try {
+      const { ownedKids, sharedKids } = await this.getKidsForAccount(accountId, accountEmail);
+      
+      // Owned kids
+      const ownedKidsResult = ownedKids.map(kid => ({
+        kid,
+        isOwned: true,
+        permission: undefined,
+        sharedBy: undefined
+      }));
+      
+      // All shared kids (both read and write)
+      const allSharedKids = sharedKids.map(item => ({
+        kid: item.kid,
+        isOwned: false,
+        permission: item.permission,
+        sharedBy: item.sharedBy
+      }));
+      
+      return [...ownedKidsResult, ...allSharedKids];
+    } catch (error) {
+      console.error('Error getting kids for gallery:', error);
       throw error;
     }
   }

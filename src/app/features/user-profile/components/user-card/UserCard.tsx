@@ -23,7 +23,7 @@ import { StoryImage } from '@/app/features/story/components/story/StoryImage';
 import { PLACEHOLDER_IMAGE } from '@/app/utils/imagePlaceholder';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { FirebaseError } from 'firebase/app';
-import { firestoreService } from '@/app/services/firestore.service';
+import { getAuth } from 'firebase/auth';
 
 
 // Types 
@@ -305,6 +305,8 @@ const ShareKidDialog: FC<{
   const handleShare = async () => {
     setError(null);
     
+    console.log(`[ShareKidDialog] Sharing kid: ${kidId} (${kidName}) with email: ${email}`);
+    
     // Validate email
     if (!email.trim()) {
       setError(t.userCard.shareDialog.invalidEmail);
@@ -324,17 +326,36 @@ const ShareKidDialog: FC<{
     setIsSharing(true);
     
     try {
-      // Check if already shared
-      const isAlreadyShared = await firestoreService.isKidSharedWithEmail(kidId, email.trim());
+      // Get auth token for API call
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
       
-      if (isAlreadyShared) {
-        setError(t.userCard.shareDialog.alreadyShared);
+      if (!token) {
+        setError('Failed to get authentication token');
         setIsSharing(false);
         return;
       }
       
-      // Share the kid with sharedBy accountId
-      await firestoreService.shareKidWithEmail(kidId, email.trim(), currentUser.uid);
+      // Use server-side API to share the kid
+      const response = await fetch(`/api/user/kids/${kidId}/share`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          permission: 'read',
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        setError(result.error || t.userCard.shareDialog.shareError);
+        setIsSharing(false);
+        return;
+      }
       
       toast({
         title: t.userCard.shareDialog.shareSuccess.replace('{email}', email.trim()),
