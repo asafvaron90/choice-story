@@ -97,7 +97,6 @@ export default function GalleryPage() {
             permission: item.permission,
           }));
           setSharedKids(mappedKids);
-          console.log(`[Gallery] Loaded ${mappedKids.length} shared kids`);
         } else {
           // API returned error, but we continue with empty shared kids
           console.warn('[Gallery] Could not load shared kids:', result.error);
@@ -129,7 +128,6 @@ export default function GalleryPage() {
 
       setStoriesLoading(true);
       try {
-        console.log(`[Gallery] Fetching stories for kid ${selectedKidId} with accountId ${accountIdForStories}`);
         const response = await StoryApi.getStoriesByKid(accountIdForStories, selectedKidId);
         if (response.success && response.data) {
           setStories(response.data.stories || []);

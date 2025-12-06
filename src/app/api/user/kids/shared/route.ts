@@ -14,9 +14,8 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     // Verify authentication
     const authHeader = request.headers.get('Authorization');
-    console.log(`[/api/user/kids/shared] GET - Auth header present: ${!!authHeader}`);
-    
     const decodedToken = await verifyAuthHeader(authHeader);
+    
     if (!decodedToken || !decodedToken.email) {
       return NextResponse.json({
         success: false,
@@ -24,16 +23,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       }, { status: 401 });
     }
     
-    console.log(`[/api/user/kids/shared] GET - Token verified, email: ${decodedToken.email}, uid: ${decodedToken.uid}`);
-    
     // Get kids shared with this email
-    console.log(`[/api/user/kids/shared] Querying for email: "${decodedToken.email}"`);
     const sharedKids = await firestoreServerService.getKidsSharedWithEmail(decodedToken.email);
-    
-    console.log(`[/api/user/kids/shared] Found ${sharedKids.length} shared kids`);
-    if (sharedKids.length > 0) {
-      console.log(`[/api/user/kids/shared] Kids:`, sharedKids.map(k => ({ kidId: k.kid.id, name: k.kid.name })));
-    }
     
     return NextResponse.json({
       success: true,

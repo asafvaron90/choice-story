@@ -492,20 +492,15 @@ class FirestoreService {
       // Normalize email to use as document ID (replace dots for Firestore compatibility)
       const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
       const collectionPath = this.getUsersCollection();
-      const fullPath = `${collectionPath}/${kidId}/sharedWith/${normalizedEmail}`;
-      
-      console.log(`[FIRESTORE_CLIENT] Checking share at path: ${fullPath}`);
       
       const shareRef = doc(this.db!, collectionPath, kidId, 'sharedWith', normalizedEmail);
       const shareDoc = await getDoc(shareRef);
       
-      console.log(`[FIRESTORE_CLIENT] Share exists: ${shareDoc.exists()}`);
       return shareDoc.exists();
     } catch (error) {
       // If we can't check (subcollection doesn't exist, offline, etc.), 
       // assume it's not shared and let the share proceed
-      console.warn('[FIRESTORE_CLIENT] Could not check existing share, assuming not shared:', error);
-      console.log('[FIRESTORE_CLIENT] kidId:', kidId, 'email:', email);
+      console.warn('[FIRESTORE_CLIENT] Could not check existing share:', error);
       return false;
     }
   }
@@ -524,22 +519,14 @@ class FirestoreService {
     sharedByAccountId: string,
     permission: 'read' | 'write' = 'read'
   ): Promise<{ email: string; permission: string }> {
-    console.log(`[FIRESTORE_CLIENT] shareKidWithEmail called:`, { kidId, email, sharedByAccountId, permission });
-    
     try {
-      console.log(`[FIRESTORE_CLIENT] Ensuring initialized...`);
       this.ensureInitialized();
-      console.log(`[FIRESTORE_CLIENT] Firestore initialized, db:`, !!this.db);
       
       // Normalize email for document ID (replace dots for Firestore compatibility)
       const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
       const collectionPath = this.getUsersCollection();
-      const fullPath = `${collectionPath}/${kidId}/sharedWith/${normalizedEmail}`;
-      
-      console.log(`[FIRESTORE_CLIENT] Creating share at path: ${fullPath}`);
       
       const shareRef = doc(this.db!, collectionPath, kidId, 'sharedWith', normalizedEmail);
-      console.log(`[FIRESTORE_CLIENT] Document reference created`);
       
       const shareData = {
         email: email.toLowerCase(), // Store email as field for collection group queries
@@ -548,11 +535,8 @@ class FirestoreService {
         sharedAt: new Date()
       };
       
-      console.log(`[FIRESTORE_CLIENT] About to call setDoc with data:`, shareData);
       await setDoc(shareRef, shareData);
-      console.log(`[FIRESTORE_CLIENT] setDoc completed successfully`);
       
-      console.log(`[FIRESTORE_CLIENT] Kid ${kidId} shared with ${email} (${permission}) by account ${sharedByAccountId}`);
       return { email: email.toLowerCase(), permission };
     } catch (error) {
       console.error('[FIRESTORE_CLIENT] Error sharing kid:', error);

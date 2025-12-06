@@ -303,8 +303,6 @@ const ShareKidDialog: FC<{
   const handleShare = async () => {
     setError(null);
     
-    console.log(`[ShareKidDialog] Sharing kid: ${kidId} (${kidName}) with email: ${email}`);
-    
     // Validate email
     if (!email.trim()) {
       setError(t.userCard.shareDialog.invalidEmail);

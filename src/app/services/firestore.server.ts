@@ -807,8 +807,6 @@ class FirestoreServerService {
       const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
       const usersCollection = this.getUsersCollection();
       
-      console.log(`[FIRESTORE_SERVER] Sharing kid ${kidId} with ${email} (normalized: ${normalizedEmail})`);
-      
       const shareRef = this.db.collection(usersCollection).doc(kidId).collection('sharedWith').doc(normalizedEmail);
       
       await shareRef.set({
@@ -817,8 +815,6 @@ class FirestoreServerService {
         sharedBy: sharedByAccountId,
         sharedAt: new Date()
       });
-      
-      console.log(`[FIRESTORE_SERVER] Kid ${kidId} shared successfully with ${email}`);
       return { success: true, email: email.toLowerCase(), permission };
     } catch (error) {
       console.error('[FIRESTORE_SERVER] Error sharing kid:', error);
@@ -890,8 +886,6 @@ class FirestoreServerService {
     try {
       this.ensureInitialized();
       
-      console.log(`[FIRESTORE_SERVER] Getting kids shared with email: ${email}`);
-      
       // Query all sharedWith subcollections where email matches
       const sharedWithQuery = this.db.collectionGroup('sharedWith')
         .where('email', '==', email.toLowerCase());
@@ -901,11 +895,9 @@ class FirestoreServerService {
         snapshot = await sharedWithQuery.get();
       } catch (indexError) {
         // If collection group index isn't ready, return empty array
-        console.warn(`[FIRESTORE_SERVER] Collection group query failed (index may be building): ${indexError}`);
+        console.warn('[FIRESTORE_SERVER] Collection group query failed (index may be building)');
         return [];
       }
-      
-      console.log(`[FIRESTORE_SERVER] Found ${snapshot.docs.length} shares for ${email}`);
       
       // For each share, get the parent kid document
       const sharedKids = await Promise.all(
@@ -954,7 +946,6 @@ class FirestoreServerService {
       // Filter out null results
       const validSharedKids = sharedKids.filter((item): item is NonNullable<typeof item> => item !== null);
       
-      console.log(`[FIRESTORE_SERVER] Returning ${validSharedKids.length} valid shared kids`);
       return validSharedKids;
     } catch (error) {
       console.error('[FIRESTORE_SERVER] Error getting kids shared with email:', error);
