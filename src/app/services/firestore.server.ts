@@ -787,6 +787,171 @@ class FirestoreServerService {
       throw error;
     }
   }
+
+  /**
+   * Share a kid with an email address (server-side)
+   * @param kidId The kid's ID
+   * @param email The email to share with
+   * @param sharedByAccountId The accountId of the user sharing the kid
+   * @param permission The permission level ('read' or 'write'), defaults to 'read'
+   */
+  async shareKidWithEmail(
+    kidId: string,
+    email: string,
+    sharedByAccountId: string,
+    permission: 'read' | 'write' = 'read'
+  ): Promise<{ success: boolean; email: string; permission: string }> {
+    try {
+      this.ensureInitialized();
+      
+      const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
+      const usersCollection = this.getUsersCollection();
+      
+      const shareRef = this.db.collection(usersCollection).doc(kidId).collection('sharedWith').doc(normalizedEmail);
+      
+      await shareRef.set({
+        email: email.toLowerCase(),
+        permission,
+        sharedBy: sharedByAccountId,
+        sharedAt: new Date()
+      });
+      return { success: true, email: email.toLowerCase(), permission };
+    } catch (error) {
+      console.error('[FIRESTORE_SERVER] Error sharing kid:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a kid is already shared with an email (server-side)
+   */
+  async isKidSharedWithEmail(kidId: string, email: string): Promise<boolean> {
+    try {
+      this.ensureInitialized();
+      
+      const normalizedEmail = email.toLowerCase().replace(/\./g, '_');
+      const usersCollection = this.getUsersCollection();
+      
+      const shareRef = this.db.collection(usersCollection).doc(kidId).collection('sharedWith').doc(normalizedEmail);
+      const doc = await shareRef.get();
+      
+      return doc.exists;
+    } catch (error) {
+      console.error('[FIRESTORE_SERVER] Error checking kid share:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get all shares for a kid (server-side)
+   */
+  async getKidShares(kidId: string): Promise<{
+    email: string;
+    permission: string;
+    sharedBy: string;
+    sharedAt?: Date;
+  }[]> {
+    try {
+      this.ensureInitialized();
+      
+      const usersCollection = this.getUsersCollection();
+      const sharesRef = this.db.collection(usersCollection).doc(kidId).collection('sharedWith');
+      const snapshot = await sharesRef.get();
+      
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          email: data.email || doc.id.replace(/_/g, '.'),
+          permission: data.permission || 'read',
+          sharedBy: data.sharedBy || '',
+          sharedAt: data.sharedAt?.toDate ? data.sharedAt.toDate() : undefined
+        };
+      });
+    } catch (error) {
+      console.error('[FIRESTORE_SERVER] Error getting kid shares:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all kids shared with an email address (server-side)
+   * Uses collection group query on 'sharedWith' subcollections
+   */
+  async getKidsSharedWithEmail(email: string): Promise<{
+    kid: KidDetails;
+    permission: 'read' | 'write';
+    sharedBy: string;
+    sharedAt?: Date;
+  }[]> {
+    try {
+      this.ensureInitialized();
+      
+      // Query all sharedWith subcollections where email matches
+      const sharedWithQuery = this.db.collectionGroup('sharedWith')
+        .where('email', '==', email.toLowerCase());
+      
+      let snapshot;
+      try {
+        snapshot = await sharedWithQuery.get();
+      } catch (indexError) {
+        // If collection group index isn't ready, return empty array
+        console.warn('[FIRESTORE_SERVER] Collection group query failed (index may be building)');
+        return [];
+      }
+      
+      // For each share, get the parent kid document
+      const sharedKids = await Promise.all(
+        snapshot.docs.map(async (shareDoc) => {
+          const shareData = shareDoc.data();
+          
+          // Get the parent kid document reference
+          // Path is: users_{env}/{kidId}/sharedWith/{emailDoc}
+          const kidRef = shareDoc.ref.parent.parent;
+          if (!kidRef) {
+            console.warn('[FIRESTORE_SERVER] Could not get parent kid reference');
+            return null;
+          }
+          
+          const kidDoc = await kidRef.get();
+          if (!kidDoc.exists) {
+            console.warn(`[FIRESTORE_SERVER] Kid document ${kidRef.id} not found`);
+            return null;
+          }
+          
+          const kidData = kidDoc.data();
+          const kid: KidDetails = {
+            id: kidDoc.id,
+            accountId: kidData?.accountId || '',
+            names: kidData?.names || [],
+            age: kidData?.age || 0,
+            gender: kidData?.gender || 'male',
+            avatarUrl: kidData?.avatarUrl || '',
+            kidSelectedAvatar: kidData?.kidSelectedAvatar,
+            imageAnalysis: kidData?.imageAnalysis,
+            name: kidData?.name,
+            stories_created: kidData?.stories_created,
+            createdAt: kidData?.createdAt?.toDate ? kidData.createdAt.toDate() : undefined,
+            lastUpdated: kidData?.lastUpdated?.toDate ? kidData.lastUpdated.toDate() : undefined,
+          };
+          
+          return {
+            kid,
+            permission: (shareData.permission || 'read') as 'read' | 'write',
+            sharedBy: shareData.sharedBy || '',
+            sharedAt: shareData.sharedAt?.toDate ? shareData.sharedAt.toDate() : undefined
+          };
+        })
+      );
+      
+      // Filter out null results
+      const validSharedKids = sharedKids.filter((item): item is NonNullable<typeof item> => item !== null);
+      
+      return validSharedKids;
+    } catch (error) {
+      console.error('[FIRESTORE_SERVER] Error getting kids shared with email:', error);
+      throw error;
+    }
+  }
 }
 
 // Export a singleton instance

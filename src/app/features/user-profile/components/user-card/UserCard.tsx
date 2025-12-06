@@ -5,6 +5,8 @@ import { KidDetails, Story, StoryStatus, Account } from "@/models";
 import { useAuth } from '@/app/context/AuthContext';
 import { useAvatarHandling } from '../../hooks/useAvatarHandling';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import ImageUrl from "@/app/components/common/ImageUrl";
 import {
   Dialog,
@@ -21,6 +23,7 @@ import { StoryImage } from '@/app/features/story/components/story/StoryImage';
 import { PLACEHOLDER_IMAGE } from '@/app/utils/imagePlaceholder';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { FirebaseError } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 
 
 // Types 
@@ -259,6 +262,202 @@ const AvatarDialog: FC<{
   );
 };
 
+// Share Kid Dialog Component
+const ShareKidDialog: FC<{
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  kidId: string;
+  kidName: string;
+  t: {
+    userCard: {
+      shareDialog: {
+        title: string;
+        description: string;
+        emailLabel: string;
+        emailPlaceholder: string;
+        shareButton: string;
+        sharing: string;
+        alreadyShared: string;
+        shareSuccess: string;
+        shareError: string;
+        invalidEmail: string;
+      };
+    };
+  };
+}> = ({
+  isOpen,
+  onOpenChange,
+  kidId,
+  kidName,
+  t,
+}) => {
+  const [email, setEmail] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleShare = async () => {
+    setError(null);
+    
+    // Validate email
+    if (!email.trim()) {
+      setError(t.userCard.shareDialog.invalidEmail);
+      return;
+    }
+    
+    if (!validateEmail(email.trim())) {
+      setError(t.userCard.shareDialog.invalidEmail);
+      return;
+    }
+
+    setIsSharing(true);
+    
+    try {
+      // Get auth token for API call
+      const auth = getAuth();
+      
+      if (!auth.currentUser) {
+        setError('User not authenticated');
+        setIsSharing(false);
+        return;
+      }
+      
+      const token = await auth.currentUser.getIdToken();
+      
+      if (!token) {
+        setError('Failed to get authentication token');
+        setIsSharing(false);
+        return;
+      }
+      
+      // Use server-side API to share the kid
+      const response = await fetch(`/api/user/kids/${kidId}/share`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          permission: 'read',
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        setError(result.error || t.userCard.shareDialog.shareError);
+        setIsSharing(false);
+        return;
+      }
+      
+      toast({
+        title: t.userCard.shareDialog.shareSuccess.replace('{email}', email.trim()),
+        description: `${kidName} is now shared with ${email.trim()}`,
+      });
+      
+      // Reset and close
+      setEmail('');
+      onOpenChange(false);
+    } catch (err) {
+      console.error('Error sharing kid:', err);
+      setError(t.userCard.shareDialog.shareError);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isSharing) {
+      handleShare();
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        setEmail('');
+        setError(null);
+      }
+      onOpenChange(open);
+    }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <svg 
+              className="h-5 w-5 text-blue-500" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" 
+              />
+            </svg>
+            {t.userCard.shareDialog.title}
+          </DialogTitle>
+          <DialogDescription>
+            {t.userCard.shareDialog.description}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="share-email">{t.userCard.shareDialog.emailLabel}</Label>
+            <Input
+              id="share-email"
+              type="email"
+              placeholder={t.userCard.shareDialog.emailPlaceholder}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError(null);
+              }}
+              onKeyDown={handleKeyDown}
+              disabled={isSharing}
+              className={error ? 'border-red-500' : ''}
+            />
+            {error && (
+              <p className="text-sm text-red-500">{error}</p>
+            )}
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSharing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleShare}
+            disabled={isSharing || !email.trim()}
+            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+          >
+            {isSharing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                {t.userCard.shareDialog.sharing}
+              </>
+            ) : (
+              t.userCard.shareDialog.shareButton
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // Main component
 export const UserCard: React.FC<UserCardProps> = memo(({
   kid,
@@ -269,6 +468,7 @@ export const UserCard: React.FC<UserCardProps> = memo(({
   // Component state
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showStoryLimitDialog, setShowStoryLimitDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   
   // Hooks
   const router = useRouter();
@@ -434,11 +634,33 @@ export const UserCard: React.FC<UserCardProps> = memo(({
             <Button
               size="sm"
               onClick={handleCreateStory}
-              className="w-full mb-4 ounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 px-4"
+              className="w-full mb-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 px-4"
             >
               {t.userCard.createStory}
             </Button>
             
+            {/* Share Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowShareDialog(true)}
+              className="w-full mb-4 rounded-full border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400 px-4"
+            >
+              <svg 
+                className="h-4 w-4 mr-2" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" 
+                />
+              </svg>
+              {t.userCard.share}
+            </Button>
             
             {/* <QuickGenerateDialog 
               kidDetails={kid}
@@ -595,6 +817,15 @@ export const UserCard: React.FC<UserCardProps> = memo(({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Kid Dialog */}
+      <ShareKidDialog
+        isOpen={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        kidId={kid.id}
+        kidName={kidName}
+        t={t}
+      />
     </div>
   );
 });

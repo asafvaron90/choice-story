@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/app/context/AuthContext";
@@ -13,11 +13,19 @@ import { StoryActionsModal } from "@/app/components/modals/StoryActionsModal";
 import ImageUrl from "@/app/components/common/ImageUrl";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { getAuth } from "firebase/auth";
+
+// Extended kid type with sharing info
+interface KidWithShareInfo extends KidDetails {
+  isShared?: boolean;
+  sharedBy?: string;
+  permission?: 'read' | 'write';
+}
 
 export default function GalleryPage() {
   const { t } = useTranslation();
   const { currentUser, googleSignIn, loading: authLoading } = useAuth();
-  const { kids, isLoading: kidsLoading, fetchKids } = useKidsState();
+  const { kids: ownedKids, isLoading: kidsLoading, fetchKids } = useKidsState();
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -26,6 +34,18 @@ export default function GalleryPage() {
   const [storiesLoading, setStoriesLoading] = useState(false);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sharedKids, setSharedKids] = useState<KidWithShareInfo[]>([]);
+  const [sharedKidsLoading, setSharedKidsLoading] = useState(false);
+  
+  // Refs to prevent duplicate fetches
+  const hasFetchedOwnedKids = useRef(false);
+  const hasFetchedSharedKids = useRef(false);
+
+  // Combine owned and shared kids - use useMemo to prevent recreation
+  const allKids = useMemo<KidWithShareInfo[]>(() => [
+    ...ownedKids.map(kid => ({ ...kid, isShared: false })),
+    ...sharedKids
+  ], [ownedKids, sharedKids]);
 
   // Check URL params for kidId on mount
   useEffect(() => {
@@ -35,21 +55,80 @@ export default function GalleryPage() {
     }
   }, [searchParams]);
 
-  // Fetch kids if not already loaded
+  // Fetch owned kids - only once
   useEffect(() => {
-    if (currentUser && kids.length === 0 && !kidsLoading) {
+    if (currentUser && !hasFetchedOwnedKids.current && !kidsLoading) {
+      hasFetchedOwnedKids.current = true;
       fetchKids(currentUser.uid);
     }
-  }, [currentUser, kids.length, kidsLoading, fetchKids]);
+  }, [currentUser, kidsLoading, fetchKids]);
+
+  // Fetch shared kids - only once
+  useEffect(() => {
+    const fetchSharedKids = async () => {
+      if (!currentUser || hasFetchedSharedKids.current) return;
+      
+      hasFetchedSharedKids.current = true;
+      setSharedKidsLoading(true);
+      
+      try {
+        const auth = getAuth();
+        const token = await auth.currentUser?.getIdToken();
+        
+        if (!token) {
+          console.error('No auth token available');
+          setSharedKidsLoading(false);
+          return;
+        }
+        
+        const response = await fetch('/api/user/kids/shared', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.kids) {
+          const mappedKids: KidWithShareInfo[] = result.kids.map((item: { kid: KidDetails; permission: 'read' | 'write'; sharedBy: string }) => ({
+            ...item.kid,
+            isShared: true,
+            sharedBy: item.sharedBy,
+            permission: item.permission,
+          }));
+          setSharedKids(mappedKids);
+        } else {
+          // API returned error, but we continue with empty shared kids
+          console.warn('[Gallery] Could not load shared kids:', result.error);
+          setSharedKids([]);
+        }
+      } catch (error) {
+        // Network error or other issue - continue with empty shared kids
+        console.error('Error fetching shared kids:', error);
+        setSharedKids([]);
+      } finally {
+        setSharedKidsLoading(false);
+      }
+    };
+    
+    fetchSharedKids();
+  }, [currentUser]);
 
   // Fetch stories when a kid is selected
   useEffect(() => {
     const fetchStoriesForKid = async () => {
       if (!selectedKidId || !currentUser) return;
 
+      // Find the selected kid to get the correct accountId
+      // Use refs or combine from current state to avoid dependency issues
+      const kid = [...ownedKids, ...sharedKids].find(k => k.id === selectedKidId);
+      
+      // Use the kid's accountId (owner's ID) for fetching stories, fallback to current user
+      const accountIdForStories = kid?.accountId || currentUser.uid;
+
       setStoriesLoading(true);
       try {
-        const response = await StoryApi.getStoriesByKid(currentUser.uid, selectedKidId);
+        const response = await StoryApi.getStoriesByKid(accountIdForStories, selectedKidId);
         if (response.success && response.data) {
           setStories(response.data.stories || []);
         } else if (!response.success) {
@@ -67,7 +146,7 @@ export default function GalleryPage() {
     };
 
     fetchStoriesForKid();
-  }, [selectedKidId, currentUser]);
+  }, [selectedKidId, currentUser, ownedKids, sharedKids]);
 
   const handleKidClick = useCallback((kidId: string) => {
     setSelectedKidId(kidId);
@@ -86,7 +165,10 @@ export default function GalleryPage() {
   }, []);
 
   // Get kid details for header
-  const selectedKid = kids.find(kid => kid.id === selectedKidId);
+  const selectedKid = allKids.find(kid => kid.id === selectedKidId);
+  
+  // Combined loading state
+  const isLoadingKids = kidsLoading || sharedKidsLoading;
 
   // Not authenticated
   if (!currentUser && !authLoading) {
@@ -107,7 +189,7 @@ export default function GalleryPage() {
   }
 
   // Loading state
-  if (authLoading || kidsLoading) {
+  if (authLoading || isLoadingKids) {
     return (
       <>
         <Header />
@@ -149,56 +231,109 @@ export default function GalleryPage() {
         {/* Kids View */}
         {!selectedKidId && (
           <>
-            {kids.length === 0 ? (
+            {allKids.length === 0 ? (
               <div className="text-center py-12 px-6 bg-white rounded-xl shadow-sm">
-                <p className="text-gray-500 mb-8">{t.dashboard.noKids}</p>
-                <Button
-                  onClick={() => router.push("/create-a-kid")}
-                  className="rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all px-8"
-                >
-                  {t.dashboard.addKid}
-                </Button>
+                <p className="text-gray-500">No kids yet</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {kids.map((kid) => (
-                  <motion.div
-                    key={kid.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleKidClick(kid.id)}
-                    className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer p-6"
-                  >
-                    <div className="flex flex-col items-center">
-                      <div className="relative h-32 w-32 rounded-full overflow-hidden mb-4 bg-gray-100">
-                        <ImageUrl
-                          src={kid.kidSelectedAvatar || kid.avatarUrl || "/images/boy-placeholder.svg"}
-                          alt={kid.name || t.userCard.unnamedKid}
-                          fill
-                          className="object-cover"
-                          sizes="128px"
-                        />
-                      </div>
-                      <h2 className="text-xl font-bold text-center mb-2">
-                        {kid.name || t.userCard.unnamedKid}
-                      </h2>
-                      <div className="flex gap-4 text-sm text-gray-600 mb-4">
-                        <span>{kid.age} {t.userCard.years}</span>
-                        <span>{kid.gender === "male" ? t.userCard.male : t.userCard.female}</span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleKidClick(kid.id);
-                        }}
-                      >
-                        {t.gallery.viewStories}
-                      </Button>
+              <div className="space-y-8">
+                {/* Owned Kids Section */}
+                {ownedKids.length > 0 && (
+                  <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {ownedKids.map((kid) => (
+                        <motion.div
+                          key={kid.id}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleKidClick(kid.id)}
+                          className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer p-6"
+                        >
+                          <div className="flex flex-col items-center">
+                            <div className="relative h-32 w-32 rounded-full overflow-hidden mb-4 bg-gray-100">
+                              <ImageUrl
+                                src={kid.kidSelectedAvatar || kid.avatarUrl || "/images/boy-placeholder.svg"}
+                                alt={kid.name || t.userCard.unnamedKid}
+                                fill
+                                className="object-cover"
+                                sizes="128px"
+                              />
+                            </div>
+                            <h2 className="text-xl font-bold text-center mb-2">
+                              {kid.name || t.userCard.unnamedKid}
+                            </h2>
+                            <div className="flex gap-4 text-sm text-gray-600 mb-4">
+                              <span>{kid.age} {t.userCard.years}</span>
+                              <span>{kid.gender === "male" ? t.userCard.male : t.userCard.female}</span>
+                            </div>
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleKidClick(kid.id);
+                              }}
+                            >
+                              {t.gallery.viewStories}
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
-                  </motion.div>
-                ))}
+                  </div>
+                )}
+
+                {/* Shared Kids Section */}
+                {sharedKids.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                      <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                      Shared with me
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {sharedKids.map((kid) => (
+                        <motion.div
+                          key={kid.id}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleKidClick(kid.id)}
+                          className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-blue-200 cursor-pointer p-6"
+                        >
+                          <div className="flex flex-col items-center">
+                            <div className="relative h-32 w-32 rounded-full overflow-hidden mb-4 bg-gray-100">
+                              <ImageUrl
+                                src={kid.kidSelectedAvatar || kid.avatarUrl || "/images/boy-placeholder.svg"}
+                                alt={kid.name || t.userCard.unnamedKid}
+                                fill
+                                className="object-cover"
+                                sizes="128px"
+                              />
+                            </div>
+                            <h2 className="text-xl font-bold text-center mb-2">
+                              {kid.name || t.userCard.unnamedKid}
+                            </h2>
+                            <div className="flex gap-4 text-sm text-gray-600 mb-4">
+                              <span>{kid.age} {t.userCard.years}</span>
+                              <span>{kid.gender === "male" ? t.userCard.male : t.userCard.female}</span>
+                            </div>
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleKidClick(kid.id);
+                              }}
+                            >
+                              {t.gallery.viewStories}
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>

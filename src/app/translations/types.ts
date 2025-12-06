@@ -182,6 +182,18 @@ export interface Translation {
       originalImage: string;
       selectedAvatar: string;
     };
+    shareDialog: {
+      title: string;
+      description: string;
+      emailLabel: string;
+      emailPlaceholder: string;
+      shareButton: string;
+      sharing: string;
+      alreadyShared: string;
+      shareSuccess: string;
+      shareError: string;
+      invalidEmail: string;
+    };
     toasts: {
       analysisCompleteTitle: string;
       analysisCompleteDescription: string;
@@ -200,6 +212,7 @@ export interface Translation {
     stories: string;
     createStory: string;
     delete: string;
+    share: string;
     storiesTitle: string;
     refreshStories: string;
     noStoriesFound: string;
