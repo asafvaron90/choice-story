@@ -12,7 +12,10 @@ export const enTranslations: Translation = {
     dashboard: "Dashboard",
     account: "Account",
     gallery: "Gallery",
-    adminPanel: "Admin Panel"
+    adminPanel: "Admin Panel",
+    newProfile: "New Profile",
+    library: "Library",
+    management: "Management"
   },
   hero: {
     title: "Create Personalized Stories",
@@ -326,8 +329,8 @@ export const enTranslations: Translation = {
     loginButton: "Login with Google",
     loggedOutMessage: "You are not logged in",
     loggedOutDescription: "Please log in to view your profile",
-    pendingApproval: "Pending Approval",
-    pendingApprovalMessage: "Our team will approve your access shortly. Feel free to contact your agent for more information.",
+    pendingApproval: "Request Pending",
+    pendingApprovalMessage: "Our team will approve your access shortly. Feel free to contact us for more information.",
     accountStatus: "Account Status:",
     email: "Email:",
     accessRights: "Access Rights:",

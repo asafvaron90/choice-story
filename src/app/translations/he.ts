@@ -12,7 +12,10 @@ export const heTranslations: Translation = {
     dashboard: "לוח בקרה",
     account: "חשבון",
     gallery: "גלריה",
-    adminPanel: "פאנל ניהול"
+    adminPanel: "פאנל ניהול",
+    newProfile: "פרופיל חדש",
+    library: "ספריה",
+    management: "ניהול"
   },
   hero: {
     title: "צור סיפורים מותאמים אישית",
@@ -326,8 +329,8 @@ export const heTranslations: Translation = {
     loginButton: "התחבר עם Google",
     loggedOutMessage: "אינך מחובר",
     loggedOutDescription: "אנא התחבר כדי לצפות בפרופיל שלך",
-    pendingApproval: "ממתין לאישור",
-    pendingApprovalMessage: "הצוות שלנו יאשר את הגישה שלך בקרוב. אל תהסס ליצור קשר עם הסוכן שלך למידע נוסף.",
+    pendingApproval: "נשלחה בקשת הרשאה",
+    pendingApprovalMessage: "נשתדל לאשר בהקדם האפשרי\nתרגישו חופשי ליצור איתנו קשר לעוד מידע",
     accountStatus: "סטטוס חשבון:",
     email: "אימייל:",
     accessRights: "הרשאות גישה:",
