@@ -293,6 +293,14 @@ function generateOutputFile(allFunctions: Map<string, FunctionInfo[]>): string {
       }
     }
   }
+  
+  // Check if 'admin' is imported from utils - if so, remove the firebase-admin import
+  // to avoid duplicate identifier conflicts
+  const finalUtilsImport = normalizedImports.get('../lib/utils');
+  if (finalUtilsImport && finalUtilsImport.includes('admin')) {
+    // Remove the firebase-admin import since admin is already imported from utils
+    normalizedImports.delete('firebase-admin');
+  }
 
   // Deduplicate helper functions by their name and replace getEnvironment()
   const uniqueHelpersMap = new Map<string, string>();

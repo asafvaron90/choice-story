@@ -278,7 +278,8 @@ export const enTranslations: Translation = {
     noStoriesYet: "No stories yet for this kid",
     loginPrompt: "Please login to view your gallery",
     loginButton: "Login with Google",
-    viewStories: "View Stories"
+    viewStories: "View Stories",
+    sharedWithMe: "Shared with me"
   },
   storyActions: {
     title: "Story Options",

@@ -257,6 +257,7 @@ export interface Translation {
     loginPrompt: string;
     loginButton: string;
     viewStories: string;
+    sharedWithMe: string;
   };
   storyActions: {
     title: string;

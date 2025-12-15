@@ -278,7 +278,8 @@ export const heTranslations: Translation = {
     noStoriesYet: "עדיין אין סיפורים לילד הזה",
     loginPrompt: "אנא התחבר כדי לצפות בגלריה שלך",
     loginButton: "התחבר עם Google",
-    viewStories: "צפה בסיפורים"
+    viewStories: "צפה בסיפורים",
+    sharedWithMe: "שותפו איתי"
   },
   storyActions: {
     title: "אפשרויות סיפור",
