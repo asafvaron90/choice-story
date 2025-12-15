@@ -9,5 +9,4 @@
 - [ ] 📝 Documentation update
 
 ## Checklist
-- [ ] Npm Run Build with no errors
 - [ ] Quick Sanity Check
