@@ -37,6 +37,7 @@ jobs:
           cd functions
           echo "# Auto-generated from GitHub Secrets" > .env
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+          echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> .env
           echo "✅ Environment file created"
       
       - name: Build functions
@@ -66,6 +67,7 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NODE_ENV: production
       
       - name: Enable Firebase Web Frameworks experiment

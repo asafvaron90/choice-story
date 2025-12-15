@@ -14,6 +14,7 @@ export * from "./functions/story-images";
 export * from "./functions/story-text";
 export * from "./functions/story-titles";
 export * from "./functions/text-generation";
+export * from "./functions/send-email";
 
 // Export generated dev- functions (staging/testing)
 export * from "./functions/generated-dev-functions";
