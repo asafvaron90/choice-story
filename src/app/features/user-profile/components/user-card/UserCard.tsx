@@ -360,6 +360,37 @@ const ShareKidDialog: FC<{
         description: `${kidName} is now shared with ${email.trim()}`,
       });
       
+      // Send email notification
+      try {
+        const emailResponse = await fetch('/api/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            to: email.trim(),
+            templateId: 'TEST',
+            // templateId: 'SHARE_STORY_TEMPLATE',
+            variables: {
+              SHARE_URL: `${window.location.origin}/dashboard`,
+            },
+          }),
+        });
+
+        const emailResult = await emailResponse.json();
+        
+        if (!emailResult.success) {
+          console.error('Failed to send email notification:', emailResult.error);
+          // Don't show error to user since sharing was successful
+        } else {
+          console.log('Email notification sent successfully:', emailResult.id);
+        }
+      } catch (emailErr) {
+        console.error('Error sending email notification:', emailErr);
+        // Don't show error to user since sharing was successful
+      }
+      
       // Reset and close
       setEmail('');
       onOpenChange(false);
