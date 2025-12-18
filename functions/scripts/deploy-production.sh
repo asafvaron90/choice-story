@@ -8,22 +8,40 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FUNCTIONS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_ROOT="$(cd "$FUNCTIONS_DIR/.." && pwd)"
 
-# Create functions/.env from root .env files only (no environment variables)
+# Create functions/.env from various sources (CI or local development)
 cd "$FUNCTIONS_DIR"
 
-# Check if root .env.production exists
-if [ -f "$PROJECT_ROOT/.env.production" ]; then
-  echo "✅ Copying API keys from root .env.production"
+# Priority 1: Check if functions/.env already exists with valid keys (e.g., created by CI workflow)
+if [ -f ".env" ] && grep -q "^OPENAI_API_KEY=" .env && grep -q "^RESEND_API_KEY=" .env; then
+  echo "✅ Using existing functions/.env file (created by CI or previous run)"
+
+# Priority 2: Check if environment variables are set (GitHub Actions / CI)
+elif [ -n "$OPENAI_API_KEY" ] && [ -n "$RESEND_API_KEY" ]; then
+  echo "✅ Creating .env from environment variables (CI mode)"
+  echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
+  echo "RESEND_API_KEY=$RESEND_API_KEY" >> .env
+
+# Priority 3: Check if root .env.production exists (local development - production preferred)
+elif [ -f "$PROJECT_ROOT/.env.production" ]; then
+  echo "✅ Copying API keys from root .env.production (local development)"
   grep "^OPENAI_API_KEY=" "$PROJECT_ROOT/.env.production" > .env 2>/dev/null || true
   grep "^RESEND_API_KEY=" "$PROJECT_ROOT/.env.production" >> .env 2>/dev/null || true
-# Check if root .env.local exists
+
+# Priority 4: Check if root .env.local exists (local development fallback)
 elif [ -f "$PROJECT_ROOT/.env.local" ]; then
-  echo "✅ Copying API keys from root .env.local"
+  echo "✅ Copying API keys from root .env.local (local development)"
   grep "^OPENAI_API_KEY=" "$PROJECT_ROOT/.env.local" > .env 2>/dev/null || true
   grep "^RESEND_API_KEY=" "$PROJECT_ROOT/.env.local" >> .env 2>/dev/null || true
+
+# No source available - fail with helpful message
 else
-  echo "❌ No .env.production or .env.local file found in project root!"
-  echo "   Please create $PROJECT_ROOT/.env.production or $PROJECT_ROOT/.env.local with required API keys"
+  echo "❌ No environment configuration found!"
+  echo ""
+  echo "   Available options:"
+  echo "   1. Set OPENAI_API_KEY and RESEND_API_KEY environment variables (for CI)"
+  echo "   2. Create $PROJECT_ROOT/.env.production with required API keys (for local dev)"
+  echo "   3. Create $PROJECT_ROOT/.env.local with required API keys (for local dev)"
+  echo "   4. Create $FUNCTIONS_DIR/.env directly with required API keys"
   exit 1
 fi
 
