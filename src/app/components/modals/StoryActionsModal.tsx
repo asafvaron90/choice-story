@@ -14,6 +14,7 @@ import { useTranslation } from "@/app/hooks/useTranslation";
 import { toast } from "@/components/ui/use-toast";
 import { Share2, Copy, Check, BookOpen } from "lucide-react";
 import { Story } from "@/models";
+import useStoryState from "@/app/state/story-state";
 
 interface StoryActionsModalProps {
   isOpen: boolean;
@@ -29,8 +30,11 @@ export const StoryActionsModal: FC<StoryActionsModalProps> = ({
   const { t, isRTL } = useTranslation();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  // Import the story state hook
+  const { setCurrentStory } = useStoryState();
 
   const handleReadStory = () => {
+    setCurrentStory(story);
     router.push(`/story/${story.id}`);
     onOpenChange(false);
   };

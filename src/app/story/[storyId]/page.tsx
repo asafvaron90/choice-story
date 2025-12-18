@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ImageUrl from "@/app/components/common/ImageUrl";
-import { Story, StoryPage, PageType } from "@/models";
+import { Story, StoryPage, PageType, KidDetails } from "@/models";
 import { motion, AnimatePresence } from "framer-motion";
 import { StoryApi } from "@/app/network/StoryApi";
 import { RestartStoryModal } from "@/app/components/modals/RestartStoryModal";
 import { LeaveStoryModal } from "@/app/components/modals/LeaveStoryModal";
 import { RotateCcw, Images } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
+import { useTranslation } from "@/app/hooks/useTranslation";
 import { useAuth } from "@/app/context/AuthContext";
+import useKidsState from "@/app/state/kids-state";
+import {
+  StoryPageCard,
+  StoryPageCardHandle,
+} from "@/app/features/story/components/story/StoryPageCard";
 import { useStoryReadingAnalytics } from "@/app/hooks/useStoryAnalytics";
+import useStoryState from "@/app/state/story-state";
+import { toast } from "@/components/ui/use-toast";
 
 type ScreenCategory = "small" | "medium" | "large";
 
@@ -1194,13 +1202,20 @@ const StoryReader = ({
 };
 
 export default function StoryReaderPage() {
-  const { storyId } = useParams();
+  const { storyId, kidId } = useParams();
   const router = useRouter();
   const { t } = useLanguage();
   const { currentUser } = useAuth();
-  const [story, setStory] = useState<Story | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { fetchKidById } = useKidsState();
+  // Core state
+  const { currentStory } = useStoryState();
+  const [story, setStory] = useState<Story | null>(currentStory?.id === String(storyId) ? currentStory : null);
+  const [kid, setKid] = useState<KidDetails | null>(null);
+  const [loading, setLoading] = useState(currentStory?.id === String(storyId) ? false : true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const storyPageRefs = useRef<Record<string, StoryPageCardHandle | null>>({});
+  const autoGenerateTriggered = useRef(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<
     "good" | "bad" | undefined
@@ -1225,6 +1240,11 @@ export default function StoryReaderPage() {
 
   // Reset all state when storyId changes (e.g., browser back button)
   useEffect(() => {
+    // If we already have the correct story loaded (e.g. from global state), don't reset
+    if (story && story.id === String(storyId)) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setStory(null);
@@ -1267,41 +1287,65 @@ export default function StoryReaderPage() {
     }
   }, [currentPage, selectedChoice, storyId, loading]);
 
+  const fetchStoryData = useCallback(async () => {
+    if (!storyId || !currentUser) return;
+
+    // If we already have the story from global state, we don't need to show loading
+    // But we might want to refresh it in the background or just use it if it's fresh
+    if (story && story.id === String(storyId)) {
+       setLoading(false);
+       
+       // Still need to fetch kid data if not present
+       if ((story.kidId || kidId) && !kid) {
+         const kidIdToUse = story.kidId || String(kidId);
+         const kidData = await fetchKidById(kidIdToUse);
+         if (kidData) setKid(kidData);
+       }
+       return;
+    }
+
+    if (!storyId) {
+      setError("Missing story ID");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setError(null);
+      const response = await StoryApi.getStoryById(String(storyId));
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      if (!response.data) {
+        throw new Error("Story not found");
+      }
+
+      const storyData = response.data;
+      if (!storyData) {
+        throw new Error("Story not found");
+      }
+
+      setStory(storyData);
+      
+      // Also fetch kid data if needed
+      if (storyData.kidId || kidId) {
+         const kidIdToUse = storyData.kidId || String(kidId);
+         const kidData = await fetchKidById(kidIdToUse);
+         if (kidData) setKid(kidData);
+      }
+    } catch (_err) {
+      console.error("Error fetching story:", _err);
+      setError("Failed to load story");
+    } finally {
+      setLoading(false);
+    }
+  }, [storyId, currentUser, kidId, fetchKidById, story, kid]);
+
   useEffect(() => {
-    const fetchStory = async () => {
-      if (!storyId) {
-        setError("Missing story ID");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await StoryApi.getStoryById(String(storyId));
-
-        if (!response.success) {
-          throw new Error(response.error);
-        }
-
-        if (!response.data) {
-          throw new Error("Story not found");
-        }
-
-        const storyData = response.data;
-        if (!storyData) {
-          throw new Error("Story not found");
-        }
-
-        setStory(storyData);
-      } catch (_err) {
-        console.error("Error fetching story:", _err);
-        setError("Failed to load story");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStory();
-  }, [storyId]);
+    fetchStoryData();
+  }, [fetchStoryData]);
 
   // Preload all story page images after story loads
   useEffect(() => {
