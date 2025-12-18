@@ -19,12 +19,12 @@ export async function POST(request: NextRequest) {
     
     // Use dev prefix for staging/development (camelCase naming)
     const functionName = isDevelopment ? 'devSendEmailFunction' : 'sendEmailFunction';
-    let functionUrl = `https://us-central1-choicestory-b3135.cloudfunctions.net/${functionName}`;
+    const functionUrl = `https://us-central1-choicestory-b3135.cloudfunctions.net/${functionName}`;
     
     // If we're running with local emulator
-    if (process.env.FIREBASE_EMULATOR === 'true') {
-      functionUrl = `http://localhost:5001/choicestory-b3135/us-central1/${functionName}`;
-    }
+    // if (process.env.FIREBASE_EMULATOR === 'true') {
+    //   functionUrl = `http://localhost:5001/choicestory-b3135/us-central1/${functionName}`;
+    // }
     
     // Get the request body
     const requestBody = await request.json();

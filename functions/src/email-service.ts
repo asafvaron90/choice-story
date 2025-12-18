@@ -36,12 +36,9 @@ export type EmailTemplateId = keyof typeof EMAIL_TEMPLATES;
  * Variables for TEST template
  * Add properties as your template requires them
  */
-export type TestTemplateVariables = Record<string, never>;
-// When you add variables to the TEST template, replace with:
-// export interface TestTemplateVariables {
-//   name: string;
-//   message: string;
-// }
+export interface TestTemplateVariables {
+  SHARE_URL: string;
+}
 
 /**
  * Variables for WELCOME template (example for future use)
@@ -79,9 +76,7 @@ export interface TemplateVariablesMap {
  */
 export const TEMPLATE_VARIABLES: Record<EmailTemplateId, string[]> = {
   TEST: [
-    // Add variable names that TEST template expects
-    // 'name',
-    // 'message',
+    'SHARE_URL',
   ],
   // WELCOME: ['userName', 'accountType'],
   // ORDER_CONFIRMATION: ['orderNumber', 'customerName', 'totalAmount', 'orderDate'],
@@ -121,39 +116,28 @@ export async function sendEmail<T extends EmailTemplateId>(request: SendEmailReq
       throw new Error(`Unknown template ID: ${request.templateId}`);
     }
     
-    // Fetch the template from Resend
-    const templateResponse = await resend.templates.get(templateUuid);
+      // Fetch the template from Resend
+      const templateResponse = await resend.templates.get(templateUuid);
     
-    if (templateResponse.error) {
-      throw new Error(`Failed to fetch template: ${templateResponse.error.message}`);
-    }
-    
-    const template = templateResponse.data;
-    
-    if (!template) {
-      throw new Error(`Template not found: ${templateUuid}`);
-    }
-    
-    // Prepare email content - replace variables in HTML if provided
-    let htmlContent = template.html || "";
-    let subjectContent = template.subject || "No Subject";
-    
-    if (request.variables) {
-      // Replace {{variableName}} placeholders with actual values
-      const variablesRecord = request.variables as unknown as Record<string, unknown>;
-      for (const [key, value] of Object.entries(variablesRecord)) {
-        const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-        htmlContent = htmlContent.replace(placeholder, String(value));
-        subjectContent = subjectContent.replace(placeholder, String(value));
+      if (templateResponse.error) {
+        throw new Error(`Failed to fetch template: ${templateResponse.error.message}`);
       }
-    }
-    
-    // Send the email using the template content
+      
+      const template = templateResponse.data;
+      
+      if (!template) {
+        throw new Error(`Template not found: ${templateUuid}`);
+      }
+
+    // Send email using Resend's native template support
+    // Resend handles variable replacement automatically
     const emailResponse = await resend.emails.send({
-      from: template.from || "support", // Use template's from or default
+      from: template.from || "support",
       to: request.to,
-      subject: subjectContent,
-      html: htmlContent,
+      template: {
+        id: templateUuid,
+        variables: (request.variables || {}) as Record<string, string | number>,
+      },
     });
     
     if (emailResponse.error) {

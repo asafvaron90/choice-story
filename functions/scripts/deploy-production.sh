@@ -8,32 +8,54 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FUNCTIONS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_ROOT="$(cd "$FUNCTIONS_DIR/.." && pwd)"
 
-# Create functions/.env from environment variables or root .env files
+# Create functions/.env from root .env files only (no environment variables)
 cd "$FUNCTIONS_DIR"
 
-# Check if OPENAI_API_KEY is already in environment (from GitHub Actions)
-if [ -n "$OPENAI_API_KEY" ]; then
-  echo "✅ Using OPENAI_API_KEY from environment variable"
-  echo "# Auto-generated from environment variables" > .env
-  echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> .env
 # Check if root .env.production exists
-elif [ -f "$PROJECT_ROOT/.env.production" ]; then
-  echo "✅ Copying OPENAI_API_KEY from root .env.production"
-  grep "^OPENAI_API_KEY=" "$PROJECT_ROOT/.env.production" > .env || echo "⚠️  OPENAI_API_KEY not found in .env.production"
+if [ -f "$PROJECT_ROOT/.env.production" ]; then
+  echo "✅ Copying API keys from root .env.production"
+  grep "^OPENAI_API_KEY=" "$PROJECT_ROOT/.env.production" > .env 2>/dev/null || true
+  grep "^RESEND_API_KEY=" "$PROJECT_ROOT/.env.production" >> .env 2>/dev/null || true
 # Check if root .env.local exists
 elif [ -f "$PROJECT_ROOT/.env.local" ]; then
-  echo "✅ Copying OPENAI_API_KEY from root .env.local"
-  grep "^OPENAI_API_KEY=" "$PROJECT_ROOT/.env.local" > .env || echo "⚠️  OPENAI_API_KEY not found in .env.local"
-# Check if functions/.env already exists
-elif [ -f "$FUNCTIONS_DIR/.env" ]; then
-  echo "✅ Using existing functions/.env"
+  echo "✅ Copying API keys from root .env.local"
+  grep "^OPENAI_API_KEY=" "$PROJECT_ROOT/.env.local" > .env 2>/dev/null || true
+  grep "^RESEND_API_KEY=" "$PROJECT_ROOT/.env.local" >> .env 2>/dev/null || true
 else
-  echo "❌ No OPENAI_API_KEY found in environment or root .env files!"
-  echo "   Please set OPENAI_API_KEY environment variable or create root .env.production file"
+  echo "❌ No .env.production or .env.local file found in project root!"
+  echo "   Please create $PROJECT_ROOT/.env.production or $PROJECT_ROOT/.env.local with required API keys"
   exit 1
 fi
 
 echo "✅ Environment variables configured"
+echo ""
+
+# Validate that all required API keys are present
+cd "$FUNCTIONS_DIR"
+if [ ! -f ".env" ]; then
+  echo "❌ .env file was not created!"
+  exit 1
+fi
+
+MISSING_KEYS=()
+if ! grep -q "^OPENAI_API_KEY=" .env; then
+  MISSING_KEYS+=("OPENAI_API_KEY")
+fi
+if ! grep -q "^RESEND_API_KEY=" .env; then
+  MISSING_KEYS+=("RESEND_API_KEY")
+fi
+
+if [ ${#MISSING_KEYS[@]} -gt 0 ]; then
+  echo "❌ Missing required API keys in .env file:"
+  for key in "${MISSING_KEYS[@]}"; do
+    echo "   - $key"
+  done
+  echo ""
+  echo "   Please set these environment variables or add them to your root .env.local/.env.production file"
+  exit 1
+fi
+
+echo "✅ All required API keys validated"
 echo ""
 
 cd "$FUNCTIONS_DIR"

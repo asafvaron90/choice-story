@@ -8,7 +8,7 @@ import { firebaseAdmin } from '@/app/services/firebase-admin.service';
 export async function verifyIdToken(token: string) {
   try {
     console.log(`[verifyIdToken] Starting token verification`);
-    
+
     // Make sure Firebase Admin is initialized
     if (!firebaseAdmin.isReady()) {
       const adminError = firebaseAdmin.getInitializationError();
@@ -22,18 +22,23 @@ export async function verifyIdToken(token: string) {
       });
       throw new Error(adminError || 'Firebase Admin SDK not initialized');
     }
-    
+
     // Get the Auth instance from the Firebase Admin service
     const auth = firebaseAdmin.getAuth();
     console.log(`[verifyIdToken] Got Firebase Auth instance`);
-    
+
     // Log token format check (without exposing the actual token)
     console.log(`[verifyIdToken] Token format check:`, {
       length: token.length,
       startsWithEy: token.startsWith('ey'),
       parts: token.split('.').length
     });
-    
+
+    // server-side only logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Auth Token] ${token}`);
+    }
+
     // Verify the token
     console.log(`[verifyIdToken] Verifying token with Firebase...`);
     const decodedToken = await auth.verifyIdToken(token);
@@ -60,21 +65,21 @@ export async function verifyIdToken(token: string) {
 export async function verifyAuthHeader(authHeader: string | null) {
   console.log(`[verifyAuthHeader] Starting header verification`);
   console.log(`[verifyAuthHeader] Header present: ${!!authHeader}`);
-  
+
   if (!authHeader) {
     console.log(`[verifyAuthHeader] No Authorization header provided`);
     return null;
   }
-  
+
   if (!authHeader.startsWith('Bearer ')) {
     console.log(`[verifyAuthHeader] Invalid header format, got: ${authHeader.substring(0, 10)}...`);
     return null;
   }
-  
+
   try {
     const token = authHeader.substring(7);
     console.log(`[verifyAuthHeader] Extracted token, length: ${token.length}`);
-    
+
     const decodedToken = await verifyIdToken(token);
     console.log(`[verifyAuthHeader] Token verified successfully, uid: ${decodedToken?.uid}`);
     console.log(`[verifyAuthHeader] Full decoded token:`, {
