@@ -11,3 +11,5 @@ node_modules/
 # Generated dev- functions
 src/functions/generated-dev-functions.ts
 
+# Auto-synced constants (source of truth is in root src/constants/)
+src/constants/email-templates.ts

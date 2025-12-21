@@ -25,7 +25,9 @@
     "deploy:staging:functions": "firebase use choicestory-b3135 && cd functions && bash scripts/deploy-staging.sh",
     "verify:firebase": "node firebase-config-verification.js",
     "verify:env": "node verify-dev-environment.js",
-    "prepare": "husky"
+    "prepare": "husky",
+    "upload:email-templates": "node resend-email-templates/upload-templates.js",
+    "upload:email-templates:cleanup": "node resend-email-templates/upload-templates.js --cleanup"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
@@ -69,6 +71,7 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "resend": "^6.6.0",
     "@shadcn/ui": "^0.0.4",
     "@types/jest": "^29.5.14",
     "@types/node": "^20",

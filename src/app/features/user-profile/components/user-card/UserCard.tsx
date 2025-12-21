@@ -24,6 +24,7 @@ import { PLACEHOLDER_IMAGE } from '@/app/utils/imagePlaceholder';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { FirebaseError } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getEmailTemplateId } from '@/constants/email-templates';
 
 
 // Types 
@@ -268,6 +269,7 @@ const ShareKidDialog: FC<{
   onOpenChange: (isOpen: boolean) => void;
   kidId: string;
   kidName: string;
+  language: 'en' | 'he';
   t: {
     userCard: {
       shareDialog: {
@@ -289,6 +291,7 @@ const ShareKidDialog: FC<{
   onOpenChange,
   kidId,
   kidName,
+  language,
   t,
 }) => {
   const [email, setEmail] = useState('');
@@ -370,10 +373,9 @@ const ShareKidDialog: FC<{
           },
           body: JSON.stringify({
             to: email.trim(),
-            templateId: 'TEST',
-            // templateId: 'SHARE_STORY_TEMPLATE',
+            templateId: getEmailTemplateId(language, 'SHARE_KID'),
             variables: {
-              SHARE_URL: `${window.location.origin}/dashboard`,
+              SHARE_URL: `${window.location.origin}/dashboard`
             },
           }),
         });
@@ -504,7 +506,7 @@ export const UserCard: React.FC<UserCardProps> = memo(({
   // Hooks
   const router = useRouter();
   const { currentUser } = useAuth();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   
   
   // Use custom hooks
@@ -855,6 +857,7 @@ export const UserCard: React.FC<UserCardProps> = memo(({
         onOpenChange={setShowShareDialog}
         kidId={kid.id}
         kidName={kidName}
+        language={language}
         t={t}
       />
     </div>
