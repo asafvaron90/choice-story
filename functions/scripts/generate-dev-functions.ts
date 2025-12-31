@@ -135,6 +135,37 @@ function extractHelperFunctions(filePath: string, sourceCode: string): string[] 
   );
 
   function visit(node: ts.Node) {
+    // Look for top-level const declarations (like MAX_IMAGE_RETRIES = 3)
+    if (ts.isVariableStatement(node) && !node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
+      const decl = node.declarationList.declarations[0];
+      if (decl && ts.isIdentifier(decl.name) && decl.initializer) {
+        // Check if it's a simple constant (not a function)
+        const isSimpleConst = ts.isNumericLiteral(decl.initializer) || 
+                              ts.isStringLiteral(decl.initializer) ||
+                              (ts.isPrefixUnaryExpression(decl.initializer) && ts.isNumericLiteral(decl.initializer.operand));
+        
+        if (isSimpleConst) {
+          // Check if it's at the top level
+          let parent = node.parent;
+          let isTopLevel = true;
+          while (parent) {
+            if (ts.isFunctionDeclaration(parent) || ts.isFunctionExpression(parent) || ts.isArrowFunction(parent)) {
+              isTopLevel = false;
+              break;
+            }
+            parent = parent.parent;
+          }
+          
+          if (isTopLevel) {
+            const start = node.getStart();
+            const end = node.getEnd();
+            const constText = sourceCode.substring(start, end);
+            helpers.push(constText);
+          }
+        }
+      }
+    }
+    
     // Look for function declarations (not exported) at top level
     if (ts.isFunctionDeclaration(node) && !node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
       // Check if it's at the top level (not nested)
@@ -228,6 +259,19 @@ function generateOutputFile(allFunctions: Map<string, FunctionInfo[]>): string {
   const normalizedImports = new Map<string, string>();
   let hasSaveImageToStorage = false;
   
+  // Helper to merge named imports from the same path
+  function mergeImports(existingImp: string, newImp: string, importPath: string): string {
+    const existingMatch = existingImp.match(/\{([^}]+)\}/);
+    const newMatch = newImp.match(/\{([^}]+)\}/);
+    if (existingMatch && newMatch) {
+      const existingItems = existingMatch[1].split(',').map(s => s.trim());
+      const newItems = newMatch[1].split(',').map(s => s.trim());
+      const allItems = [...new Set([...existingItems, ...newItems])];
+      return `import { ${allItems.join(', ')} } from "${importPath}";`;
+    }
+    return existingImp;
+  }
+  
   Array.from(allImports).forEach(imp => {
     // Extract the import path to use as key
     const pathMatch = imp.match(/from\s+["']([^"']+)["']/);
@@ -237,24 +281,13 @@ function generateOutputFile(allFunctions: Map<string, FunctionInfo[]>): string {
       if (imp.includes('saveImageToStorage')) {
         hasSaveImageToStorage = true;
       }
-      // Keep the first occurrence of each import path, but merge utils imports
-      if (importPath === '../lib/utils') {
-        // Collect all utils imports and merge them
-        const existingUtils = normalizedImports.get(importPath);
-        if (existingUtils) {
-          // Extract existing imports
-          const existingMatch = existingUtils.match(/\{([^}]+)\}/);
-          const newMatch = imp.match(/\{([^}]+)\}/);
-          if (existingMatch && newMatch) {
-            const existingItems = existingMatch[1].split(',').map(s => s.trim());
-            const newItems = newMatch[1].split(',').map(s => s.trim());
-            const allItems = [...new Set([...existingItems, ...newItems])];
-            normalizedImports.set(importPath, `import { ${allItems.join(', ')} } from "${importPath}";`);
-          }
-        } else {
-          normalizedImports.set(importPath, imp);
-        }
-      } else if (!normalizedImports.has(importPath)) {
+      
+      // Check if we already have an import from this path
+      const existingImport = normalizedImports.get(importPath);
+      if (existingImport) {
+        // Merge imports from the same path
+        normalizedImports.set(importPath, mergeImports(existingImport, imp, importPath));
+      } else {
         normalizedImports.set(importPath, imp);
       }
     } else {

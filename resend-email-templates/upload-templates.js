@@ -385,7 +385,7 @@ async function uploadTemplates() {
     });
   }
   
-  console.log('\n📋 Template IDs for email-service.ts:');
+  console.log('\n📋 Template IDs for email-templates.ts:');
   console.log('```typescript');
   console.log('export const EMAIL_TEMPLATES = {');
   successful.forEach(r => {

@@ -4,6 +4,85 @@ import { generateText } from "../text-generation";
 import { generateImage } from "../image-generation";
 import { OPENAI_AGENTS } from "../open-ai-agents";
 import { getFirestoreHelper, saveImageToStorage, getDb, getEnvironment } from "../lib/utils";
+import { sendEmail } from "../email-service";
+import { getEmailTemplateId } from "../constants/email-templates";
+
+// Sleep helper for retry delays
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Image generation retry configuration
+const MAX_IMAGE_RETRIES = 3;
+
+/**
+ * Detects if text contains Hebrew characters
+ * Used to determine email language based on story content
+ */
+function containsHebrew(text: string): boolean {
+  // Hebrew Unicode range: \u0590-\u05FF
+  const hebrewRegex = /[\u0590-\u05FF]/;
+  return hebrewRegex.test(text);
+}
+
+/**
+ * Detects the language based on kid name and story title
+ * Returns 'he' if Hebrew characters are found, 'en' otherwise
+ */
+function detectLanguage(kidName?: string, storyTitle?: string): 'en' | 'he' {
+  const textToCheck = `${kidName || ''} ${storyTitle || ''}`;
+  return containsHebrew(textToCheck) ? 'he' : 'en';
+}
+
+/**
+ * Generate an image with retry logic and exponential backoff
+ * @param params - Parameters for image generation
+ * @param pageNum - Page number for logging
+ * @returns Base64 encoded image string
+ */
+async function generatePageImageWithRetry(
+  params: {
+    prompt: { id: string };
+    input: Array<{
+      role: string;
+      content: Array<{ type: string; text?: string; image_url?: string }>;
+    }>;
+  },
+  pageNum: number
+): Promise<string> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= MAX_IMAGE_RETRIES; attempt++) {
+    try {
+      functions.logger.info(`Image generation attempt ${attempt}/${MAX_IMAGE_RETRIES} for page ${pageNum}`);
+      const base64Image = await generateImage(params);
+      
+      if (attempt > 1) {
+        functions.logger.info(`Image generation succeeded on attempt ${attempt} for page ${pageNum}`);
+      }
+      
+      return base64Image;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      functions.logger.warn(`Image generation attempt ${attempt}/${MAX_IMAGE_RETRIES} failed for page ${pageNum}:`, {
+        error: lastError.message,
+        attempt,
+        maxRetries: MAX_IMAGE_RETRIES
+      });
+      
+      if (attempt < MAX_IMAGE_RETRIES) {
+        // Exponential backoff: 1s, 2s, 4s
+        const delayMs = 1000 * Math.pow(2, attempt - 1);
+        functions.logger.info(`Waiting ${delayMs}ms before retry...`);
+        await sleep(delayMs);
+      }
+    }
+  }
+  
+  // All retries exhausted
+  functions.logger.error(`Image generation failed after ${MAX_IMAGE_RETRIES} attempts for page ${pageNum}`);
+  throw lastError || new Error("Image generation failed after all retry attempts");
+}
 
 // Import the helper function from story-text
 async function generateAndSaveStoryPagesText(params: {
@@ -349,8 +428,8 @@ Age: ${kidAge} years old${advantages ? `\nAdvantages: ${advantages}` : ''}${disa
             continue;
           }
 
-          functions.logger.info(`Calling OpenAI image generation for page ${i}`);
-          const base64Image = await generateImage({
+          functions.logger.info(`Calling OpenAI image generation for page ${i} (with ${MAX_IMAGE_RETRIES} retry attempts)`);
+          const base64Image = await generatePageImageWithRetry({
             prompt: { id: OPENAI_AGENTS.STORY_PAGE_IMAGE },
             input: [
               {
@@ -361,7 +440,7 @@ Age: ${kidAge} years old${advantages ? `\nAdvantages: ${advantages}` : ''}${disa
                 ],
               },
             ],
-          });
+          }, i);
 
           functions.logger.info(`Image generated, now saving to storage for page ${i}`);
           // Save image to Storage
@@ -420,6 +499,56 @@ Age: ${kidAge} years old${advantages ? `\nAdvantages: ${advantages}` : ''}${disa
       });
 
       const successfulImages = imageGenerationResults.filter(r => r.success).length;
+      const allImagesSucceeded = successfulImages === storyPages.length;
+
+      // STEP 9: Send email notification to user (only if ALL images succeeded)
+      if (allImagesSucceeded) {
+        functions.logger.info("Step 9: All images generated successfully, sending story ready email notification");
+        try {
+          // Get user email from Firebase Auth
+          const userRecord = await admin.auth().getUser(userId);
+          const userEmail = userRecord.email;
+
+        if (userEmail) {
+          // Determine base URL based on environment
+          const baseUrls: Record<string, string> = {
+            'production': 'https://choice-story.com',
+            'development': 'https://staging.choice-story.com'
+          };
+          const baseUrl = baseUrls[environment] || 'https://staging.choice-story.com';
+            
+            const storyUrl = `${baseUrl}/stories/${storyId}`;
+            
+            // Detect language based on content (Hebrew or English)
+            const emailLanguage = detectLanguage(kidName, selectedTitle);
+            functions.logger.info(`Detected email language: ${emailLanguage}`, { kidName, selectedTitle });
+            
+            const templateId = getEmailTemplateId(emailLanguage, 'STORY_READY');
+            
+            const emailResult = await sendEmail({
+              to: userEmail,
+              templateId: templateId,
+              variables: {
+                STORY_URL: storyUrl,
+                STORY_TITLE: selectedTitle,
+              },
+            });
+
+            if (emailResult.success) {
+              functions.logger.info("Story ready email sent successfully", { emailId: emailResult.id });
+            } else {
+              functions.logger.warn("Failed to send story ready email", { error: emailResult.error });
+            }
+          } else {
+            functions.logger.warn("User has no email address, skipping notification", { userId });
+          }
+        } catch (emailError) {
+          // Log error but don't fail the story generation
+          functions.logger.error("Error sending story ready email:", emailError);
+        }
+      } else {
+        functions.logger.warn(`Not all images generated (${successfulImages}/${storyPages.length}), skipping email notification. User can retry failed images in the UI.`);
+      }
       
       return {
         success: true,

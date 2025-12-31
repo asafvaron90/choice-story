@@ -4,6 +4,31 @@ import { generateText } from "../text-generation";
 import { generateImage } from "../image-generation";
 import { OPENAI_AGENTS } from "../open-ai-agents";
 import { getFirestoreHelper, saveImageToStorage, getEnvironment } from "../lib/utils";
+import { sendEmail } from "../email-service";
+import { getEmailTemplateId } from "../constants/email-templates";
+
+// ============================================================================
+// LANGUAGE DETECTION HELPER
+// ============================================================================
+
+/**
+ * Detects if text contains Hebrew characters
+ * Used to determine email language based on story content
+ */
+function containsHebrew(text: string): boolean {
+  // Hebrew Unicode range: \u0590-\u05FF
+  const hebrewRegex = /[\u0590-\u05FF]/;
+  return hebrewRegex.test(text);
+}
+
+/**
+ * Detects the language based on kid name and story title
+ * Returns 'he' if Hebrew characters are found, 'en' otherwise
+ */
+function detectLanguage(kidName?: string, storyTitle?: string): 'en' | 'he' {
+  const textToCheck = `${kidName || ''} ${storyTitle || ''}`;
+  return containsHebrew(textToCheck) ? 'he' : 'en';
+}
 
 // ============================================================================
 // RETRY AND FALLBACK HELPERS
@@ -419,6 +444,75 @@ export const generateImagePromptAndImage = functions.runWith({
         });
 
         functions.logger.info(`Successfully updated Firestore for story ${storyId}, page index: ${pageNum} with image URL and prompt`);
+        
+        // Check if ALL images are now complete and send email notification
+        const storySnapshot = await storyRef.get();
+        const storyData = storySnapshot.data();
+        
+        if (storyData && Array.isArray(storyData.pages)) {
+          const allImagesComplete = storyData.pages.every(
+            (page: { selectedImageUrl?: string }) => page.selectedImageUrl && page.selectedImageUrl.trim() !== ''
+          );
+          
+          if (allImagesComplete) {
+            functions.logger.info(`All images complete for story ${storyId}, sending email notification`);
+            
+            try {
+              // Get user email from Firebase Auth
+              const storyUserId = storyData.userId || userId;
+              const userRecord = await admin.auth().getUser(storyUserId);
+              const userEmail = userRecord.email;
+              
+              if (userEmail) {
+                // Determine base URL based on environment
+                const baseUrls: Record<string, string> = {
+                  'production': 'https://choice-story.com',
+                  'development': 'https://staging.choice-story.com'
+                };
+                const baseUrl = baseUrls[environment] || 'https://staging.choice-story.com';
+                const storyUrl = `${baseUrl}/stories/${storyId}`;
+                
+                // Get kid name and story title
+                const kidName = storyData.kidName || '';
+                const storyTitle = storyData.title || '';
+                
+                // Detect language based on content (Hebrew or English)
+                const emailLanguage = detectLanguage(kidName, storyTitle);
+                functions.logger.info(`Detected email language: ${emailLanguage}`, { kidName, storyTitle });
+                
+                // Use localized fallbacks
+                const displayStoryTitle = storyTitle || (emailLanguage === 'he' ? 'הסיפור שלך' : 'Your Story');
+                
+                const templateId = getEmailTemplateId(emailLanguage, 'STORY_READY');
+                
+                const emailResult = await sendEmail({
+                  to: userEmail,
+                  templateId: templateId,
+                  variables: {
+                    STORY_URL: storyUrl,
+                    STORY_TITLE: displayStoryTitle,
+                  },
+                });
+                
+                if (emailResult.success) {
+                  functions.logger.info("Story ready email sent successfully", { emailId: emailResult.id, storyId });
+                } else {
+                  functions.logger.warn("Failed to send story ready email", { error: emailResult.error, storyId });
+                }
+              } else {
+                functions.logger.warn("User has no email address, skipping notification", { userId: storyUserId });
+              }
+            } catch (emailError) {
+              // Log error but don't fail the image generation
+              functions.logger.error("Error sending story ready email:", emailError);
+            }
+          } else {
+            const completedCount = storyData.pages.filter(
+              (page: { selectedImageUrl?: string }) => page.selectedImageUrl && page.selectedImageUrl.trim() !== ''
+            ).length;
+            functions.logger.info(`Image ${completedCount}/${storyData.pages.length} complete for story ${storyId}, email will be sent when all complete`);
+          }
+        }
       }
 
       return {

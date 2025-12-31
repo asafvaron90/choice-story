@@ -28,17 +28,13 @@
  * Run `npm run upload:email-templates` to create/update templates and get UUIDs
  */
 export const EMAIL_TEMPLATES = {
-  SHARE_KID_EN: 'b5f621b5-d9a7-4c7b-b10a-9ecff5b375fd',
-  SHARE_KID_HE: 'e1d1b97b-bcf3-4a36-9d61-b95bc1b5552c',
+  SHARE_KID_EN: '212fefb1-a145-4762-8a6f-aed91926026b',
+  SHARE_KID_HE: '1bfc1847-733d-4ccb-853c-03d0f3dba81e',
+  STORY_READY_EN: 'cdde88b2-fc1b-4d74-9c91-f5446b5a2f0f',
+  STORY_READY_HE: 'cdec5dd2-6eea-4420-b5b1-c1a022a8396f',
 } as const;
 
 export type EmailTemplateId = keyof typeof EMAIL_TEMPLATES;
-
-/**
- * Legacy alias for backward compatibility
- * @deprecated Use EMAIL_TEMPLATES instead
- */
-export const EMAIL_TEMPLATE_IDS = EMAIL_TEMPLATES;
 
 // ============================================
 // Template Variables - Define variables for each template
@@ -52,11 +48,21 @@ export interface ShareKidTemplateVariables {
 }
 
 /**
+ * Variables for Story Ready templates (Hebrew and English)
+ */
+export interface StoryReadyTemplateVariables {
+  STORY_URL: string;
+  STORY_TITLE: string;
+}
+
+/**
  * Maps each template ID to its specific variables type
  */
 export interface TemplateVariablesMap {
   SHARE_KID_HE: ShareKidTemplateVariables;
   SHARE_KID_EN: ShareKidTemplateVariables;
+  STORY_READY_EN: StoryReadyTemplateVariables;
+  STORY_READY_HE: StoryReadyTemplateVariables;
 }
 
 /**
@@ -65,6 +71,8 @@ export interface TemplateVariablesMap {
 export const TEMPLATE_VARIABLES: Record<EmailTemplateId, string[]> = {
   SHARE_KID_HE: ['SHARE_URL'],
   SHARE_KID_EN: ['SHARE_URL'],
+  STORY_READY_EN: ['STORY_URL', 'STORY_TITLE'],
+  STORY_READY_HE: ['STORY_URL', 'STORY_TITLE'],
 };
 
 // ============================================
@@ -77,9 +85,9 @@ export const TEMPLATE_VARIABLES: Record<EmailTemplateId, string[]> = {
  */
 export type EmailTemplateCategory = 
   | 'SHARE_KID'
+  | 'STORY_READY'
   // Add more template categories here as you create them:
   // | 'WELCOME'
-  // | 'NEW_STORY_CREATED'
   // | 'PASSWORD_RESET'
   ;
 
@@ -92,14 +100,14 @@ const TEMPLATE_CATEGORY_MAP: Record<EmailTemplateCategory, Record<'en' | 'he', E
     en: 'SHARE_KID_EN',
     he: 'SHARE_KID_HE',
   },
+  STORY_READY: {
+    en: 'STORY_READY_EN',
+    he: 'STORY_READY_HE',
+  },
   // Add new template mappings here:
   // WELCOME: {
   //   en: 'WELCOME_EN',
   //   he: 'WELCOME_HE',
-  // },
-  // NEW_STORY_CREATED: {
-  //   en: 'NEW_STORY_CREATED_EN',
-  //   he: 'NEW_STORY_CREATED_HE',
   // },
 };
 
