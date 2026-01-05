@@ -18,6 +18,11 @@ import {
   signInWithRedirect,
   getRedirectResult,
   updateProfile,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
+  EmailAuthProvider,
+  linkWithCredential,
 } from "firebase/auth";
 
 import useAccountState from "../state/account-state";
@@ -35,6 +40,8 @@ export interface AuthContextType {
   loading: boolean;
   logout: () => Promise<void>;
   googleSignIn: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<void>;
   updateUserProfile: (displayName: string, photoURL?: string) => Promise<void>;
 }
 
@@ -159,6 +166,76 @@ export function AuthProvider({ children, auth }: AuthProviderProps) {
     }
   }
 
+  async function signInWithEmail(email: string, password: string) {
+    if (isSigningIn) return;
+    setIsSigningIn(true);
+
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      if (result) {
+        const fbUser = result.user;
+        setFirebaseCurrentUser(fbUser);
+        
+        // Convert to domain user
+        const domUser = convertToDomainUser(fbUser);
+        setDomainUser(domUser);
+      }
+    } catch (error: unknown) {
+      console.error('Error during email/password sign in:', error);
+      throw error;
+    } finally {
+      setIsSigningIn(false);
+    }
+  }
+
+  async function signUpWithEmail(email: string, password: string) {
+    if (isSigningIn) return;
+    setIsSigningIn(true);
+
+    try {
+      // Check if account exists with different provider (e.g., Google)
+      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+      
+      if (signInMethods.length > 0 && !signInMethods.includes('password')) {
+        // Account exists with Google - sign them in with Google first, then link password
+        console.log('Account exists with Google, signing in with Google first to link...');
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account', login_hint: email });
+        
+        const googleResult = await signInWithPopup(auth, provider);
+        const fbUser = googleResult.user;
+        
+        // Now link the email/password credential
+        const credential = EmailAuthProvider.credential(email, password);
+        await linkWithCredential(fbUser, credential);
+        
+        console.log('Successfully linked email/password to Google account');
+        setFirebaseCurrentUser(fbUser);
+        
+        // Convert to domain user
+        const domUser = convertToDomainUser(fbUser);
+        setDomainUser(domUser);
+        return;
+      }
+      
+      // Create new account
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      if (result) {
+        const fbUser = result.user;
+        setFirebaseCurrentUser(fbUser);
+        
+        // Convert to domain user
+        const domUser = convertToDomainUser(fbUser);
+        setDomainUser(domUser);
+      }
+    } catch (error: unknown) {
+      console.error('Error during email/password sign up:', error);
+      throw error;
+    } finally {
+      setIsSigningIn(false);
+    }
+  }
+
   // Add handler for redirect result
   useEffect(() => {
     // Handle the redirect result when the component mounts
@@ -245,6 +322,8 @@ export function AuthProvider({ children, auth }: AuthProviderProps) {
     loading: isLoading,
     logout,
     googleSignIn,
+    signInWithEmail,
+    signUpWithEmail,
     updateUserProfile,
   };
 

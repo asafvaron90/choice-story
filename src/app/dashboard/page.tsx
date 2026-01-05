@@ -11,6 +11,7 @@ import useUserData from '../hooks/useUserData';
 import useKidsState from '../state/kids-state';
 import { UserCard } from '../features/user-profile/components/user-card/UserCard';
 import { useTranslation } from '../hooks/useTranslation';
+import { LoginForm } from '../components/auth/LoginForm';
 import { Account } from '@/models';
 import {
   Dialog,
@@ -23,7 +24,7 @@ import {
 
 export default function Dashboard() {
   const { t } = useTranslation();
-  const { googleSignIn, firebaseUser, currentUser, loading: authLoading } = useAuth();
+  const { firebaseUser, currentUser, loading: authLoading } = useAuth();
   const { 
     user,
     kids,
@@ -192,14 +193,9 @@ export default function Dashboard() {
     return (
       <>
         <Header />
-        <div className="flex flex-col items-center min-h-screen pt-16">
-          <h1 className="text-2xl font-bold mb-4">{t.auth.loginRequired}</h1>
-          <Button 
-            onClick={googleSignIn}
-            className="rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all px-8 py-6 text-lg"
-          >
-            {t.auth.loginButton}
-          </Button>
+        <div className="flex flex-col items-center justify-center min-h-screen pt-16 px-4">
+          <h1 className="text-2xl font-bold mb-8">{t.auth.loginRequired}</h1>
+          <LoginForm />
         </div>
       </>
     );
