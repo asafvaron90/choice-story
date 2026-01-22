@@ -17,7 +17,7 @@ import { motion } from "framer-motion";
 export default function GalleryPage() {
   const { t } = useTranslation();
   const { currentUser, googleSignIn, loading: authLoading } = useAuth();
-  const { kids, isLoading: kidsLoading, fetchKids } = useKidsState();
+  const { kids, isLoading: kidsLoading, fetchKids, lastFetched } = useKidsState();
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -37,10 +37,15 @@ export default function GalleryPage() {
 
   // Fetch kids if not already loaded
   useEffect(() => {
-    if (currentUser && kids.length === 0 && !kidsLoading) {
+    // Only fetch if we haven't fetched before (lastFetched === null)
+    // This prevents infinite loops when the API returns 0 kids
+    if (currentUser && lastFetched === null && !kidsLoading) {
       fetchKids(currentUser.uid);
     }
-  }, [currentUser, kids.length, kidsLoading, fetchKids]);
+    // Note: fetchKids is a Zustand store action and is stable across renders
+    // Including it in deps causes infinite loops as Zustand recreates functions on state changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, lastFetched, kidsLoading]);
 
   // Fetch stories when a kid is selected
   useEffect(() => {
