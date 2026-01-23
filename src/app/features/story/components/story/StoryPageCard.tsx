@@ -3,7 +3,6 @@
 import ImageUrl from '@/app/components/common/ImageUrl';
 import { PageType, StoryPage, Story, KidDetails } from '@/models';
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { PageOperationsService } from '@/app/services/page-operations.service';
 import { useAuth } from '@/app/context/AuthContext';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useErrorReporting } from '@/app/hooks/useErrorReporting';
@@ -42,7 +41,6 @@ export const StoryPageCard = forwardRef<StoryPageCardHandle, StoryPageCardProps>
   ref
 ) {
   const [page, setPage] = useState(initialPage);
-  const [isRegeneratingText, setIsRegeneratingText] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isEditingText, setIsEditingText] = useState(false);
   const [editedText, setEditedText] = useState(initialPage.storyText);
@@ -88,20 +86,6 @@ export const StoryPageCard = forwardRef<StoryPageCardHandle, StoryPageCardProps>
         return 'bg-rose-100 text-rose-800';
       default:
         return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  // Handle text regeneration
-  const handleRegenerateText = async () => {
-    if (isRegeneratingText || !currentUser) return;
-    setIsRegeneratingText(true);
-    try {
-      const newText = await PageOperationsService.regeneratePageText(page, story, currentUser.uid);
-      const updatedPage = { ...page, storyText: newText };
-      setPage(updatedPage);
-      onPageUpdate?.(updatedPage);
-    } finally {
-      setIsRegeneratingText(false);
     }
   };
 
@@ -295,22 +279,6 @@ export const StoryPageCard = forwardRef<StoryPageCardHandle, StoryPageCardProps>
             >
               <Pencil className="h-4 w-4" />
             </Button>
-            {!textOnly && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRegenerateText}
-                disabled={isRegeneratingText}
-                className="h-8 w-8 p-0"
-                title={t.createStory.choices.regenerateTitle}
-              >
-                {isRegeneratingText ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-              </Button>
-            )}
           </div>
         )}
 
@@ -345,17 +313,12 @@ export const StoryPageCard = forwardRef<StoryPageCardHandle, StoryPageCardProps>
             </div>
           ) : (
             <p 
-              className={`text-gray-700 ${textOnly ? 'text-base leading-relaxed' : (isHoveringText ? '' : 'line-clamp-3')} ${isRegeneratingText ? 'opacity-50' : ''} ${!textOnly ? 'cursor-pointer transition-all' : ''}`}
+              className={`text-gray-700 ${textOnly ? 'text-base leading-relaxed' : (isHoveringText ? '' : 'line-clamp-3')} ${!textOnly ? 'cursor-pointer transition-all' : ''}`}
               onMouseEnter={() => !textOnly && setIsHoveringText(true)}
               onMouseLeave={() => !textOnly && setIsHoveringText(false)}
             >
               {page.storyText}
             </p>
-          )}
-          {isRegeneratingText && !isEditingText && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/50">
-              <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-            </div>
           )}
         </div>
       </CardContent>
