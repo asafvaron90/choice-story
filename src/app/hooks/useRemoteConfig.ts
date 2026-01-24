@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { RemoteConfigService, RemoteConfigEnv } from '@/app/services/remote-config.service';
+import { RemoteConfigService, RemoteConfigEnv, RemoteConfigKey } from '@/app/services/remote-config.service';
 
 /**
  * Hook to get a string value from Remote Config
  */
-export function useRemoteConfigString(key: string, defaultValue: string = ''): {
+export function useRemoteConfigString<K extends RemoteConfigKey>(key: K, defaultValue: string = ''): {
   value: string;
   loading: boolean;
   error: Error | null;
@@ -44,7 +44,7 @@ export function useRemoteConfigString(key: string, defaultValue: string = ''): {
 /**
  * Hook to get a number value from Remote Config
  */
-export function useRemoteConfigNumber(key: string, defaultValue: number = 0): {
+export function useRemoteConfigNumber<K extends RemoteConfigKey>(key: K, defaultValue: number = 0): {
   value: number;
   loading: boolean;
   error: Error | null;
@@ -82,7 +82,7 @@ export function useRemoteConfigNumber(key: string, defaultValue: number = 0): {
 /**
  * Hook to get a boolean value from Remote Config
  */
-export function useRemoteConfigBoolean(key: string, defaultValue: boolean = false): {
+export function useRemoteConfigBoolean<K extends RemoteConfigKey>(key: K, defaultValue: boolean = false): {
   value: boolean;
   loading: boolean;
   error: Error | null;
@@ -120,7 +120,7 @@ export function useRemoteConfigBoolean(key: string, defaultValue: boolean = fals
 /**
  * Hook to get a JSON value from Remote Config
  */
-export function useRemoteConfigJSON<T>(key: string, defaultValue: T | null = null): {
+export function useRemoteConfigJSON<T, K extends RemoteConfigKey = RemoteConfigKey>(key: K, defaultValue: T | null = null): {
   value: T | null;
   loading: boolean;
   error: Error | null;
@@ -133,7 +133,7 @@ export function useRemoteConfigJSON<T>(key: string, defaultValue: T | null = nul
   const fetchValue = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await RemoteConfigService.getJSON<T>(key);
+      const result = await RemoteConfigService.getJSON<T, K>(key);
       setValue(result ?? defaultValue);
       setError(null);
     } catch (err) {
