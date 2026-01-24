@@ -1,0 +1,22 @@
+{
+  "_description": "Local Remote Config for testing. Set NEXT_PUBLIC_REMOTE_CONFIG_ENV=local to use this file.",
+  "_note": "Modify these values to test different configurations without deploying to Firebase",
+  
+  "feature_new_story_flow": false,
+  "feature_premium_content": false,
+  "max_stories_per_day": 5,
+  "story_generation_timeout_ms": 120000,
+  
+  "maintenance_mode": false,
+  "maintenance_message": "We're performing scheduled maintenance. Please check back soon!",
+  
+  "image_generation_enabled": true,
+  "image_generation_provider": "openai",
+  
+  "welcome_message": "Welcome to Choice Story! Create personalized stories for your kids.",
+  "app_version_minimum": "1.0.0",
+  
+  "bot_version_avatar_image_ai": "latest",
+  "bot_version_story_image_ai": "latest",
+  "bot_version_full_story_generation_ai": "latest"
+}

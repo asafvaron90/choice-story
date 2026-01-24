@@ -4,6 +4,7 @@ import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAuth, GoogleAuthProvider, NextOrObserver, signInWithPopup, signOut, User, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getRemoteConfig, RemoteConfig } from 'firebase/remote-config';
 
 const firebaseConfig = {
   // Your Firebase config object
@@ -47,6 +48,7 @@ let auth: ReturnType<typeof getAuth> | null = null;
 let storage: ReturnType<typeof getStorage> | null = null;
 let db: ReturnType<typeof getFirestore> | null = null;
 let functions: ReturnType<typeof getFunctions> | null = null;
+let remoteConfig: RemoteConfig | null = null;
 
 if (hasValidConfig) {
   try {
@@ -56,6 +58,10 @@ if (hasValidConfig) {
     // Use the named database 'choice-story-db'
     db = getFirestore(app, 'choice-story-db');
     functions = getFunctions(app);
+    // Initialize Remote Config (client-side only)
+    if (typeof window !== 'undefined') {
+      remoteConfig = getRemoteConfig(app);
+    }
   } catch (error) {
     console.error('[FIREBASE] Error initializing Firebase:', error);
   }
@@ -123,4 +129,4 @@ export const onAuthStateChanged = (callback: NextOrObserver<User | null>) => {
   return auth.onAuthStateChanged(callback);
 };
 
-export { app, auth, storage, db, functions };
+export { app, auth, storage, db, functions, remoteConfig };

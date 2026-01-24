@@ -23,6 +23,9 @@ declare global {
       
       // Feature flags
       NEXT_PUBLIC_ENABLE_CLIENT_FALLBACK: string;
+      
+      // Remote Config
+      NEXT_PUBLIC_REMOTE_CONFIG_ENV: 'local' | 'staging' | 'production';
 
       NEXT_PUBLIC_GEMINI_API_KEY: string;
       OPENAI_API_KEY: string;

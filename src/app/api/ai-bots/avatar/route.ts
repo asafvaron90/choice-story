@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OpenAIClient } from "@/app/network/ai-bots/OpenAIClient";
 import { ResponseHandler } from "@/app/network/ai-bots/ResponseHandler";
-import { BOTS_IDS, BOTS_VERSIONS } from "@/app/network/ai-bots";
+import { BOTS_IDS, getBotVersion } from "@/app/network/ai-bots";
 
 export async function POST(request: NextRequest) {
   const { prompt, kidImageUrl, additionalParams } = await request.json();
@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
   }
 
   return ResponseHandler.wrap(async () => {
+    // Get bot version from Remote Config
+    const botVersion = await getBotVersion('AVATAR_IMAGE_AI');
     let imageUrl: string;
     
     if (kidImageUrl) {
@@ -26,13 +28,13 @@ export async function POST(request: NextRequest) {
       const promptToUse = prompt || "create";
       console.log("Using AI bot with reference image");
       console.log("Bot ID:", BOTS_IDS.AVATAR_IMAGE_AI);
-      console.log("Bot Version:", BOTS_VERSIONS.AVATAR_IMAGE_AI);
+      console.log("Bot Version:", botVersion);
       console.log("Prompt to use:", promptToUse);
       console.log("Reference image URL:", kidImageUrl);
       
       const result = await OpenAIClient.generateWithBot(
         BOTS_IDS.AVATAR_IMAGE_AI,
-        BOTS_VERSIONS.AVATAR_IMAGE_AI,
+        botVersion,
         promptToUse,
         kidImageUrl
       );
@@ -46,12 +48,12 @@ export async function POST(request: NextRequest) {
       const promptToUse = prompt || "create";
       console.log("Using AI bot for avatar generation");
       console.log("Bot ID:", BOTS_IDS.AVATAR_IMAGE_AI);
-      console.log("Bot Version:", BOTS_VERSIONS.AVATAR_IMAGE_AI);
+      console.log("Bot Version:", botVersion);
       console.log("Prompt to use:", promptToUse);
       
       const result = await OpenAIClient.generateWithBot(
         BOTS_IDS.AVATAR_IMAGE_AI,
-        BOTS_VERSIONS.AVATAR_IMAGE_AI,
+        botVersion,
         promptToUse
       );
       console.log("Result from AI bot:", result);

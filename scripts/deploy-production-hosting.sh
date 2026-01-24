@@ -48,6 +48,7 @@ echo ""
 export NODE_ENV=production
 export NEXT_PUBLIC_APP_ENV=production
 export APP_ENV=production
+export NEXT_PUBLIC_REMOTE_CONFIG_ENV=production
 
 # Build Next.js app
 echo "🔨 Building Next.js app for production..."
