@@ -1,9 +1,20 @@
 // app/firebase.ts
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
-import { getAuth, GoogleAuthProvider, NextOrObserver, signInWithPopup, signOut, User, connectAuthEmulator } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  NextOrObserver, 
+  signInWithPopup, 
+  signOut, 
+  User, 
+  connectAuthEmulator,
+  setPersistence,
+  browserLocalPersistence
+} from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import * as Sentry from '@sentry/nextjs';
 
 const firebaseConfig = {
   // Your Firebase config object
@@ -56,8 +67,46 @@ if (hasValidConfig) {
     // Use the named database 'choice-story-db'
     db = getFirestore(app, 'choice-story-db');
     functions = getFunctions(app);
+
+    // Configure auth persistence explicitly (only in browser)
+    if (typeof window !== 'undefined' && auth) {
+      setPersistence(auth, browserLocalPersistence)
+        .then(() => {
+          console.log('[FIREBASE AUTH] ✅ Persistence configured: browserLocalPersistence');
+          console.log('[FIREBASE AUTH] Sessions will persist across browser restarts');
+          Sentry.addBreadcrumb({
+            category: 'auth',
+            message: 'Firebase Auth persistence configured successfully',
+            level: 'info',
+            data: {
+              persistenceType: 'browserLocalPersistence'
+            }
+          });
+        })
+        .catch((error) => {
+          console.error('[FIREBASE AUTH] ⚠️ Failed to set persistence:', error);
+          console.warn('[FIREBASE AUTH] Falling back to default persistence mode');
+          Sentry.captureException(error, {
+            tags: {
+              component: 'firebase-auth',
+              operation: 'setPersistence'
+            },
+            extra: {
+              persistenceType: 'browserLocalPersistence',
+              errorCode: error.code,
+              errorMessage: error.message
+            }
+          });
+        });
+    }
   } catch (error) {
     console.error('[FIREBASE] Error initializing Firebase:', error);
+    Sentry.captureException(error, {
+      tags: {
+        component: 'firebase',
+        operation: 'initialization'
+      }
+    });
   }
 } else {
   const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.NEXT_PUBLIC_FIREBASE_API_KEY);

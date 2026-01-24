@@ -19,6 +19,12 @@ function FallbackAuthProvider({ children }: { children: ReactNode }) {
     updateUserProfile: async () => {
       throw new Error('Firebase Auth is not initialized');
     },
+    signInWithEmail: async () => {
+      throw new Error('Firebase Auth is not initialized');
+    },
+    signUpWithEmail: async () => {
+      throw new Error('Firebase Auth is not initialized');
+    },
   };
 
   return (

@@ -327,6 +327,23 @@ export interface Translation {
     kidsLimitReached: string;
     kidsLimitMessage: string;
     contactAgent: string;
+    emailLabel: string;
+    passwordLabel: string;
+    signInButton: string;
+    signUpButton: string;
+    switchToSignUp: string;
+    switchToSignIn: string;
+    or: string;
+    continueWithGoogle: string;
+    errors: {
+      emailInUse: string;
+      wrongPassword: string;
+      userNotFound: string;
+      weakPassword: string;
+      invalidEmail: string;
+      accountExistsWithGoogle: string;
+      generic: string;
+    };
   };
   notFound: {
     pageNotFound: string;
