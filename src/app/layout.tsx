@@ -6,6 +6,7 @@ import { metadata } from "./metadata";
 import AuthProviderWrapper from "./ui/components/AuthProviderWrapper";
 import { Toaster } from "../components/ui/toaster";
 import { ErrorReportingProvider } from "./components/ui/ErrorReportingProvider";
+import { RemoteConfigInitializer } from "./components/providers/RemoteConfigInitializer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className} suppressHydrationWarning>
+        <RemoteConfigInitializer />
         <LanguageProvider>
           <AuthProviderWrapper>
             <ErrorReportingProvider>

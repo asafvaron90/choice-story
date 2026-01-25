@@ -1,19 +1,20 @@
 // app/firebase.ts
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  NextOrObserver, 
-  signInWithPopup, 
-  signOut, 
-  User, 
+import {
+  getAuth,
+  GoogleAuthProvider,
+  NextOrObserver,
+  signInWithPopup,
+  signOut,
+  User,
   connectAuthEmulator,
   setPersistence,
   browserLocalPersistence
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getRemoteConfig, RemoteConfig } from 'firebase/remote-config';
 import * as Sentry from '@sentry/nextjs';
 
 const firebaseConfig = {
@@ -31,7 +32,7 @@ if (typeof window !== 'undefined') {
   const missingKeys = Object.entries(firebaseConfig)
     .filter(([key, value]) => !value)
     .map(([key]) => key);
-  
+
   if (missingKeys.length > 0) {
     console.warn('[FIREBASE] Missing config values:', missingKeys);
     console.warn('[FIREBASE] Available env vars:', {
@@ -46,18 +47,19 @@ if (typeof window !== 'undefined') {
 }
 
 // Initialize Firebase only if config is valid (prevents build-time errors)
-const hasValidConfig = firebaseConfig.apiKey && 
-                       firebaseConfig.authDomain && 
-                       firebaseConfig.projectId &&
-                       firebaseConfig.storageBucket &&
-                       firebaseConfig.messagingSenderId &&
-                       firebaseConfig.appId;
+const hasValidConfig = firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.storageBucket &&
+  firebaseConfig.messagingSenderId &&
+  firebaseConfig.appId;
 
 let app: ReturnType<typeof getApp> | null = null;
 let auth: ReturnType<typeof getAuth> | null = null;
 let storage: ReturnType<typeof getStorage> | null = null;
 let db: ReturnType<typeof getFirestore> | null = null;
 let functions: ReturnType<typeof getFunctions> | null = null;
+let remoteConfig: RemoteConfig | null = null;
 
 if (hasValidConfig) {
   try {
@@ -67,6 +69,11 @@ if (hasValidConfig) {
     // Use the named database 'choice-story-db'
     db = getFirestore(app, 'choice-story-db');
     functions = getFunctions(app);
+    
+    // Initialize Remote Config (client-side only)
+    if (typeof window !== 'undefined') {
+      remoteConfig = getRemoteConfig(app);
+    }
 
     // Configure auth persistence explicitly (only in browser)
     if (typeof window !== 'undefined' && auth) {
@@ -172,4 +179,4 @@ export const onAuthStateChanged = (callback: NextOrObserver<User | null>) => {
   return auth.onAuthStateChanged(callback);
 };
 
-export { app, auth, storage, db, functions };
+export { app, auth, storage, db, functions, remoteConfig };

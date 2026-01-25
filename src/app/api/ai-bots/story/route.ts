@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OpenAIClient } from "@/app/network/ai-bots/OpenAIClient";
 import { ResponseHandler } from "@/app/network/ai-bots/ResponseHandler";
-import { BOTS_IDS, BOTS_VERSIONS } from "@/app/network/ai-bots";
+import { BOTS_IDS, getBotVersion } from "@/app/network/ai-bots";
 
 export async function POST(request: NextRequest) {
   const { prompt } = await request.json();
@@ -14,9 +14,12 @@ export async function POST(request: NextRequest) {
   }
 
   return ResponseHandler.wrap(async () => {
+    // Get bot version from Remote Config
+    const botVersion = await getBotVersion('FULL_STORY_GENERATION_AI');
+    
     console.log("Starting story generation with prompt:", prompt.substring(0, 100) + "...");
     console.log("Bot ID:", BOTS_IDS.FULL_STORY_GENERATION_AI);
-    console.log("Bot Version:", BOTS_VERSIONS.FULL_STORY_GENERATION_AI);
+    console.log("Bot Version:", botVersion);
     
     // Add timeout handling
     const timeoutPromise = new Promise((_, reject) => {
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
     
     const storyPromise = OpenAIClient.generateWithBot(
       BOTS_IDS.FULL_STORY_GENERATION_AI,
-      BOTS_VERSIONS.FULL_STORY_GENERATION_AI,
+      botVersion,
       prompt
     );
     

@@ -6,7 +6,8 @@
 export { ImageAnalysisAI } from "./ImageAnalysisAI";
 export { OpenAIClient } from "./OpenAIClient";
 export { ResponseHandler } from "./ResponseHandler";
-export { BOTS_IDS, BOTS_VERSIONS } from "./BotsConstants";
+export { BOTS_IDS, getBotVersion, getBotVersions } from "./BotsConstants";
+export type { BotKey } from "./BotsConstants";
 export type { BotResponse, BotParams, BotRequestOptions } from "./types";
 export type { ImageAnalysisResponse } from "./ImageAnalysisAI";
 export type { ApiResponse } from "./ResponseHandler";
