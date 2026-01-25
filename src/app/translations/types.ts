@@ -17,6 +17,12 @@ export interface Translation {
     library: string;
     management: string;
   };
+  logoutConfirmation: {
+    title: string;
+    message: string;
+    cancel: string;
+    confirm: string;
+  };
   hero: {
     title: string;
     subtitle: string;
@@ -192,6 +198,7 @@ export interface Translation {
       emailPlaceholder: string;
       shareButton: string;
       sharing: string;
+      cancel: string;
       alreadyShared: string;
       shareSuccess: string;
       shareError: string;
@@ -261,6 +268,7 @@ export interface Translation {
     loginButton: string;
     viewStories: string;
     sharedWithMe: string;
+    storiesOf: string;
   };
   storyActions: {
     title: string;
