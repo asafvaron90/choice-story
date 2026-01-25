@@ -207,8 +207,8 @@ export const Header = () => {
           </Link>
         </div>
 
-        {/* Center - New Profile Button (only for writers & admins) */}
-        {currentUser && hasWriteAccess && (
+        {/* Center - New Profile Button (only for writers & admins on dashboard) */}
+        {currentUser && hasWriteAccess && isActive('/dashboard') && (
           <div className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 z-10">
             <button
               onClick={goToCreateKid}
@@ -343,8 +343,8 @@ export const Header = () => {
                     </Link>
                   </motion.div>
 
-                  {/* New Profile Button for Mobile (writers & admins) */}
-                  {currentUser && hasWriteAccess && (
+                  {/* New Profile Button for Mobile (writers & admins on dashboard) */}
+                  {currentUser && hasWriteAccess && isActive('/dashboard') && (
                     <div className="px-4 mb-6">
                       <button
                         onClick={goToCreateKid}
