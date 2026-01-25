@@ -11,11 +11,17 @@ export const heTranslations: Translation = {
     signOut: "התנתק",
     dashboard: "לוח בקרה",
     account: "חשבון",
-    gallery: "גלריה",
+    gallery: "ספריה",
     adminPanel: "פאנל ניהול",
     newProfile: "פרופיל חדש",
     library: "ספריה",
     management: "ניהול"
+  },
+  logoutConfirmation: {
+    title: "התנתקות",
+    message: "האם אתה בטוח שברצונך להתנתק?",
+    cancel: "ביטול",
+    confirm: "התנתק"
   },
   hero: {
     title: "צור סיפורים מותאמים אישית",
@@ -191,12 +197,13 @@ export const heTranslations: Translation = {
       selectedAvatar: "אווטאר נבחר כרגע",
     },
     shareDialog: {
-      title: "שתף ילד",
-      description: "שתף את הסיפורים של ילד זה עם חשבון אחר",
+      title: "שיתוף סיפורים",
+      description: "שתף את הסיפורים של {kidName} עם חשבון אחר",
       emailLabel: "כתובת אימייל",
       emailPlaceholder: "הזן אימייל לשיתוף",
       shareButton: "שתף",
       sharing: "משתף...",
+      cancel: "ביטול",
       alreadyShared: "הילד כבר משותף עם אימייל זה",
       shareSuccess: "הילד שותף עם {email}",
       shareError: "שיתוף הילד נכשל",
@@ -275,14 +282,15 @@ export const heTranslations: Translation = {
     }
   },
   gallery: {
-    title: "גלריה",
+    title: "ספריה",
     selectKid: "בחר ילד כדי לצפות בסיפורים שלו",
     backToKids: "חזרה לילדים",
     noStoriesYet: "עדיין אין סיפורים לילד הזה",
-    loginPrompt: "אנא התחבר כדי לצפות בגלריה שלך",
+    loginPrompt: "אנא התחבר כדי לצפות בספריה שלך",
     loginButton: "התחבר עם Google",
     viewStories: "צפה בסיפורים",
-    sharedWithMe: "שותפו איתי"
+    sharedWithMe: "שותפו איתי",
+    storiesOf: "הסיפורים של"
   },
   storyActions: {
     title: "אפשרויות סיפור",
@@ -318,7 +326,7 @@ export const heTranslations: Translation = {
     choiceSaved: "הבחירה שלך נשמרה",
     readAgain: "אני רוצה לקרוא שוב",
     startReading: "התחל לקרוא",
-    gallery: "גלריה",
+    gallery: "ספריה",
     rotateDevice: "סובבו את המכשיר",
     rotateDeviceMessage: "לחוויית קריאה הטובה ביותר, אנא סובבו את המכשיר למצב אופקי. זה עוזר לנו לשמור על הסיפור סוחף במסכים קטנים יותר."
   },

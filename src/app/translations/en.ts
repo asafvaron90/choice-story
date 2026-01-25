@@ -11,11 +11,17 @@ export const enTranslations: Translation = {
     signOut: "Sign Out",
     dashboard: "Dashboard",
     account: "Account",
-    gallery: "Gallery",
+    gallery: "Library",
     adminPanel: "Admin Panel",
     newProfile: "New Profile",
     library: "Library",
-    management: "Management"
+    management: "Admin"
+  },
+  logoutConfirmation: {
+    title: "Logout",
+    message: "Are you sure you want to logout?",
+    cancel: "Cancel",
+    confirm: "Logout"
   },
   hero: {
     title: "Create Personalized Stories",
@@ -191,12 +197,13 @@ export const enTranslations: Translation = {
       selectedAvatar: "Currently Selected Avatar",
     },
     shareDialog: {
-      title: "Share Kid",
-      description: "Share this kid's stories with another account",
+      title: "Share Stories",
+      description: "Share {kidName}'s stories with another account",
       emailLabel: "Email Address",
       emailPlaceholder: "Enter email to share with",
       shareButton: "Share",
       sharing: "Sharing...",
+      cancel: "Cancel",
       alreadyShared: "Kid is already shared with this email",
       shareSuccess: "Kid shared with {email}",
       shareError: "Failed to share kid",
@@ -275,14 +282,15 @@ export const enTranslations: Translation = {
     }
   },
   gallery: {
-    title: "Gallery",
+    title: "Library",
     selectKid: "Select a kid to view their stories",
     backToKids: "Back to Kids",
     noStoriesYet: "No stories yet for this kid",
-    loginPrompt: "Please login to view your gallery",
+    loginPrompt: "Please login to view your library",
     loginButton: "Login with Google",
     viewStories: "View Stories",
-    sharedWithMe: "Shared with me"
+    sharedWithMe: "Shared with me",
+    storiesOf: "The stories of"
   },
   storyActions: {
     title: "Story Options",
@@ -318,7 +326,7 @@ export const enTranslations: Translation = {
     choiceSaved: "Your choice has been saved!",
     readAgain: "I want to read again",
     startReading: "Start Reading",
-    gallery: "Gallery",
+    gallery: "Library",
     rotateDevice: "Rotate your device",
     rotateDeviceMessage: "For the best reading experience, please rotate your device to landscape. This helps us keep the story immersive on smaller screens."
   },
