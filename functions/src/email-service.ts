@@ -5,7 +5,7 @@ import {
   type EmailTemplateId,
   type SendEmailRequest,
   type SendEmailResponse,
-} from "./constants/email-templates";
+} from "../../src/constants/email-templates";
 
 // Re-export for backward compatibility
 export { EMAIL_TEMPLATES, TEMPLATE_VARIABLES };
