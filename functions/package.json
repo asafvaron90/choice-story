@@ -5,7 +5,7 @@
     "generate:dev-functions": "ts-node scripts/generate-dev-functions.ts",
     "deploy:staging-functions": "npm run generate:dev-functions && ./scripts/deploy-staging.sh",
     "deploy:production-functions": "./scripts/deploy-production.sh",
-    "build": "npm run sync:constants && npm run generate:dev-functions && tsc",
+    "build": "npm run sync:constants && npm run generate:dev-functions && echo '🔨 Running TypeScript compiler...' && tsc && echo '✅ TypeScript compilation complete!' && ls -la lib/index.js",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
